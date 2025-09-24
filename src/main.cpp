@@ -42,7 +42,7 @@ struct ColorDot
 
 static float orbit_cx = 0.0f, orbit_cy = 0.0f;
 static float orbit_angle[3] = {0.0f, 0.0f, 0.0f};
-static float orbit_speed[3] = {0.9f, -1.2f, 1.6f}; // rad/s
+static float orbit_speed[3] = {2.5f, -3.2f, 4.0f}; // rad/s - faster for visible movement
 static float orbit_radius[3] = {0.0f, 0.0f, 0.0f};
 static ColorDot dots[3];
 
@@ -62,9 +62,12 @@ static lv_color_t interpolate_color_idw_fast(int px, int py)
 
     // Early exit for close matches
     const float EPSILON_SQ = 25.0f;
-    if (d0_sq < EPSILON_SQ) return dots[0].color;
-    if (d1_sq < EPSILON_SQ) return dots[1].color;
-    if (d2_sq < EPSILON_SQ) return dots[2].color;
+    if (d0_sq < EPSILON_SQ)
+        return dots[0].color;
+    if (d1_sq < EPSILON_SQ)
+        return dots[1].color;
+    if (d2_sq < EPSILON_SQ)
+        return dots[2].color;
 
     // Use inverse distance weighting
     float w0 = 1.0f / (d0_sq + 1.0f);
@@ -99,48 +102,51 @@ static lv_color_t interpolate_color_idw_fast(int px, int py)
 
 // Custom draw event callback for smooth gradient rendering
 // This uses LVGL's proper rendering pipeline with anti-tearing
-static void gradient_draw_event_cb(lv_event_t * e)
+static void gradient_draw_event_cb(lv_event_t *e)
 {
-    lv_obj_t * obj = lv_event_get_target(e);
-    lv_draw_ctx_t * draw_ctx = lv_event_get_draw_ctx(e);
+    lv_obj_t *obj = lv_event_get_target(e);
+    lv_draw_ctx_t *draw_ctx = lv_event_get_draw_ctx(e);
 
     // Get drawing area
     lv_area_t coords;
     lv_obj_get_coords(obj, &coords);
-    
+
     lv_coord_t obj_w = lv_area_get_width(&coords);
     lv_coord_t obj_h = lv_area_get_height(&coords);
 
-    // Create gradient by drawing pixel by pixel using LVGL's proper draw functions
-    // This respects the anti-tearing configuration
-    const int STEP = 4; // Render every 4th pixel for performance
-    
-    for (lv_coord_t y = 0; y < obj_h; y += STEP) {
-        for (lv_coord_t x = 0; x < obj_w; x += STEP) {
-            // Calculate absolute screen coordinates
-            int screen_x = coords.x1 + x;
-            int screen_y = coords.y1 + y;
-            
+    // Create gradient by drawing smaller blocks for good performance/quality balance
+    const int STEP = 32; // Small blocks for smooth appearance but good performance
+
+    for (lv_coord_t y = 0; y < obj_h; y += STEP)
+    {
+        for (lv_coord_t x = 0; x < obj_w; x += STEP)
+        {
+            // Calculate absolute screen coordinates (center of the block)
+            int screen_x = coords.x1 + x + STEP / 2;
+            int screen_y = coords.y1 + y + STEP / 2;
+
             // Get interpolated color for this position
             lv_color_t color = interpolate_color_idw_fast(screen_x, screen_y);
-            
+
             // Draw filled rectangle at this position using LVGL draw functions
             lv_area_t fill_area;
             fill_area.x1 = coords.x1 + x;
             fill_area.y1 = coords.y1 + y;
             fill_area.x2 = coords.x1 + x + STEP - 1;
             fill_area.y2 = coords.y1 + y + STEP - 1;
-            
+
             // Ensure we don't draw outside object bounds
-            if (fill_area.x2 > coords.x2) fill_area.x2 = coords.x2;
-            if (fill_area.y2 > coords.y2) fill_area.y2 = coords.y2;
-            
+            if (fill_area.x2 > coords.x2)
+                fill_area.x2 = coords.x2;
+            if (fill_area.y2 > coords.y2)
+                fill_area.y2 = coords.y2;
+
             lv_draw_rect_dsc_t rect_dsc;
             lv_draw_rect_dsc_init(&rect_dsc);
             rect_dsc.bg_color = color;
             rect_dsc.bg_opa = LV_OPA_COVER;
             rect_dsc.border_width = 0;
-            
+
             lv_draw_rect(draw_ctx, &rect_dsc, &fill_area);
         }
     }
@@ -151,18 +157,22 @@ static void animation_timer_cb(lv_timer_t *timer)
 {
     static uint32_t last_time = 0;
     uint32_t now = lv_tick_get();
-    float dt = (now - last_time) / 1000.0f;
-    if (dt < 0.001f)
-        dt = 0.033f; // 30 FPS fallback
+
+    // Proper delta time calculation for FPS-independent animation
+    float dt = (now - last_time) / 1000.0f;         // Convert ms to seconds
+    if (last_time == 0 || dt < 0.001f || dt > 0.1f) // Handle first frame and extreme values
+        dt = 0.033f;                                // 30 FPS fallback
     last_time = now;
 
-    // Update orbit angles
+    // Update orbit angles using delta time for FPS-independent movement
     for (int i = 0; i < 3; ++i)
     {
         orbit_angle[i] += orbit_speed[i] * dt;
-        if (orbit_angle[i] > 6.2831853f)
+
+        // Normalize angles to [0, 2π] range
+        while (orbit_angle[i] > 6.2831853f)
             orbit_angle[i] -= 6.2831853f;
-        if (orbit_angle[i] < -6.2831853f)
+        while (orbit_angle[i] < 0.0f)
             orbit_angle[i] += 6.2831853f;
     }
 
@@ -191,17 +201,17 @@ void setup()
     Board *board = new Board();
     board->init();
 
-    // Configure anti-tearing RGB double-buffer mode (ESP-BSP style)
-    #if LVGL_PORT_AVOID_TEARING_MODE
+// Configure anti-tearing RGB double-buffer mode (ESP-BSP style)
+#if LVGL_PORT_AVOID_TEARING_MODE
     auto lcd = board->getLCD();
-    
+
     Serial.println("Configuring RGB double-buffer for anti-tearing...");
     // Enable RGB double-buffer mode: 2 frame buffers for ping-pong operation
-    lcd->configFrameBufferNumber(2);  // RGB double-buffer mode
-    
-    #if ESP_PANEL_DRIVERS_BUS_ENABLE_RGB && CONFIG_IDF_TARGET_ESP32S3
+    lcd->configFrameBufferNumber(2); // RGB double-buffer mode
+
+#if ESP_PANEL_DRIVERS_BUS_ENABLE_RGB && CONFIG_IDF_TARGET_ESP32S3
     auto lcd_bus = lcd->getBus();
-    
+
     // Configure bounce buffer for ESP32-S3 RGB LCD (essential for anti-tearing)
     if (lcd_bus->getBasicAttributes().type == ESP_PANEL_BUS_TYPE_RGB)
     {
@@ -210,14 +220,14 @@ void setup()
         // This greatly reduces tearing artifacts on ESP32-S3 RGB displays
         int bounce_buffer_height = lcd->getFrameHeight() / 10; // 48 pixels for 480px height
         int bounce_buffer_size = lcd->getFrameWidth() * bounce_buffer_height;
-        
+
         static_cast<BusRGB *>(lcd_bus)->configRGB_BounceBufferSize(bounce_buffer_size);
-        
-        Serial.printf("RGB bounce buffer configured: %dx%d pixels\n", 
-                     lcd->getFrameWidth(), bounce_buffer_height);
+
+        Serial.printf("RGB bounce buffer configured: %dx%d pixels\n",
+                      lcd->getFrameWidth(), bounce_buffer_height);
     }
-    #endif
-    #endif
+#endif
+#endif
 
     assert(board->begin());
     Serial.println("Board initialized with anti-tearing RGB configuration!");
@@ -226,12 +236,19 @@ void setup()
     lvgl_port_init(board->getLCD(), board->getTouch());
 
     Serial.println("Creating UI with anti-tearing gradient...");
+
+    // Using custom Minecraft 96px font with Cyrillic support
+    // Font includes Unicode range: ASCII (0x0020-0x007F) + Cyrillic (0x0410-0x044F)
+    Serial.println("Loading custom Cyrillic font: minecraft_ten_96");
+    Serial.printf("Font pointer: %p\n", &minecraft_ten_96);
+    Serial.printf("Font line height: %d\n", minecraft_ten_96.line_height);
+    Serial.println("Ready to display Cyrillic text with larger 96px font...");
     lvgl_port_lock(-1);
 
     // Get actual screen dimensions
     SCR_W = lv_disp_get_hor_res(NULL);
     SCR_H = lv_disp_get_ver_res(NULL);
-    
+
     Serial.printf("Screen resolution: %dx%d\n", SCR_W, SCR_H);
 
     // Initialize orbit parameters
@@ -259,42 +276,42 @@ void setup()
     lv_obj_set_style_border_width(gradient_obj, 0, 0);
     lv_obj_set_style_radius(gradient_obj, 0, 0);
     lv_obj_set_style_bg_opa(gradient_obj, LV_OPA_TRANSP, 0); // Transparent, we draw manually
-    
+
     // Add custom draw event for gradient rendering
     lv_obj_add_event_cb(gradient_obj, gradient_draw_event_cb, LV_EVENT_DRAW_MAIN, NULL);
 
-    // Create text labels (these will render on top of gradient)
+    // Create text labels with Cyrillic text using 96px Minecraft font
     main_label = lv_label_create(lv_scr_act());
-    lv_label_set_text(main_label, "НЕЙРО");
-    lv_obj_set_style_text_font(main_label, &lv_font_montserrat_48, 0);
+    lv_label_set_text(main_label, "НЕЙРО");                       // Cyrillic text
+    lv_obj_set_style_text_font(main_label, &minecraft_ten_96, 0); // Custom Minecraft 96px Cyrillic font
     lv_obj_set_style_text_color(main_label, lv_color_white(), 0);
-    lv_obj_align(main_label, LV_ALIGN_CENTER, 0, -60);
+    lv_obj_align(main_label, LV_ALIGN_CENTER, 0, -80); // Adjusted position for larger font
 
     sub_label_1 = lv_label_create(lv_scr_act());
-    lv_label_set_text(sub_label_1, "БЛОК");
-    lv_obj_set_style_text_font(sub_label_1, &lv_font_montserrat_48, 0);
+    lv_label_set_text(sub_label_1, "БЛОК");                        // Cyrillic text
+    lv_obj_set_style_text_font(sub_label_1, &minecraft_ten_96, 0); // Custom Minecraft 96px Cyrillic font
     lv_obj_set_style_text_color(sub_label_1, lv_color_white(), 0);
-    lv_obj_align_to(sub_label_1, main_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+    lv_obj_align_to(sub_label_1, main_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 10); // Adjusted spacing for larger font
 
-    sub_label_2 = lv_label_create(lv_scr_act());
-    lv_label_set_text_fmt(sub_label_2, "ESP32_Display_Panel(%d.%d.%d)",
-                          ESP_PANEL_VERSION_MAJOR, ESP_PANEL_VERSION_MINOR, ESP_PANEL_VERSION_PATCH);
-    lv_obj_set_style_text_font(sub_label_2, &lv_font_montserrat_16, 0);
-    lv_obj_set_style_text_color(sub_label_2, lv_color_white(), 0);
-    lv_obj_align_to(sub_label_2, sub_label_1, LV_ALIGN_OUT_BOTTOM_MID, 0, 15);
+    // sub_label_2 = lv_label_create(lv_scr_act());
+    // lv_label_set_text_fmt(sub_label_2, "ESP32_Display_Panel(%d.%d.%d)",
+    //                       ESP_PANEL_VERSION_MAJOR, ESP_PANEL_VERSION_MINOR, ESP_PANEL_VERSION_PATCH);
+    // lv_obj_set_style_text_font(sub_label_2, &lv_font_montserrat_16, 0);
+    // lv_obj_set_style_text_color(sub_label_2, lv_color_white(), 0);
+    // lv_obj_align_to(sub_label_2, sub_label_1, LV_ALIGN_OUT_BOTTOM_MID, 0, 15);
 
-    desc_label_1 = lv_label_create(lv_scr_act());
-    lv_label_set_text_fmt(desc_label_1, "LVGL(%d.%d.%d) + RGB Anti-Tearing",
-                          LVGL_VERSION_MAJOR, LVGL_VERSION_MINOR, LVGL_VERSION_PATCH);
-    lv_obj_set_style_text_font(desc_label_1, &lv_font_montserrat_16, 0);
-    lv_obj_set_style_text_color(desc_label_1, lv_color_white(), 0);
-    lv_obj_align_to(desc_label_1, sub_label_2, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+    // desc_label_1 = lv_label_create(lv_scr_act());
+    // lv_label_set_text_fmt(desc_label_1, "LVGL(%d.%d.%d) + RGB Anti-Tearing",
+    //                       LVGL_VERSION_MAJOR, LVGL_VERSION_MINOR, LVGL_VERSION_PATCH);
+    // lv_obj_set_style_text_font(desc_label_1, &lv_font_montserrat_16, 0);
+    // lv_obj_set_style_text_color(desc_label_1, lv_color_white(), 0);
+    // lv_obj_align_to(desc_label_1, sub_label_2, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
 
-    desc_label_2 = lv_label_create(lv_scr_act());
-    lv_label_set_text(desc_label_2, "RGB Double-Buffer + LVGL Full-Refresh Mode");
-    lv_obj_set_style_text_font(desc_label_2, &lv_font_montserrat_16, 0);
-    lv_obj_set_style_text_color(desc_label_2, lv_color_white(), 0);
-    lv_obj_align(desc_label_2, LV_ALIGN_BOTTOM_MID, 0, -20);
+    // desc_label_2 = lv_label_create(lv_scr_act());
+    // lv_label_set_text(desc_label_2, "RGB Double-Buffer + LVGL Full-Refresh Mode");
+    // lv_obj_set_style_text_font(desc_label_2, &lv_font_montserrat_16, 0);
+    // lv_obj_set_style_text_color(desc_label_2, lv_color_white(), 0);
+    // lv_obj_align(desc_label_2, LV_ALIGN_BOTTOM_MID, 0, -20);
 
     // Start animation timer
     animation_timer = lv_timer_create(animation_timer_cb, FRAME_MS, NULL);
