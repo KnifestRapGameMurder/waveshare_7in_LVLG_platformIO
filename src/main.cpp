@@ -44,6 +44,11 @@ static float orbit_cx = 0.0f, orbit_cy = 0.0f;
 static float orbit_angle[3] = {0.0f, 0.0f, 0.0f};
 static float orbit_speed[3] = {2.5f, -3.2f, 4.0f}; // rad/s - faster for visible movement
 static float orbit_radius[3] = {0.0f, 0.0f, 0.0f};
+
+// Scale parameters for orbital simulation
+static float orbit_scale_x = 2.0f; // X-axis scale multiplier (1.0 = normal, >1.0 = wider, <1.0 = narrower)
+static float orbit_scale_y = 1.5f; // Y-axis scale multiplier (1.0 = normal, >1.0 = taller, <1.0 = shorter)
+
 static ColorDot dots[3];
 
 // Optimized color interpolation function
@@ -176,15 +181,15 @@ static void animation_timer_cb(lv_timer_t *timer)
             orbit_angle[i] += 6.2831853f;
     }
 
-    // Update dot positions
-    dots[0].x = orbit_cx + cosf(orbit_angle[0]) * orbit_radius[0];
-    dots[0].y = orbit_cy + sinf(orbit_angle[0]) * orbit_radius[0];
+    // Update dot positions with independent X/Y scaling
+    dots[0].x = orbit_cx + cosf(orbit_angle[0]) * orbit_radius[0] * orbit_scale_x;
+    dots[0].y = orbit_cy + sinf(orbit_angle[0]) * orbit_radius[0] * orbit_scale_y;
 
-    dots[1].x = orbit_cx + cosf(orbit_angle[1]) * orbit_radius[1];
-    dots[1].y = orbit_cy + sinf(orbit_angle[1]) * orbit_radius[1];
+    dots[1].x = orbit_cx + cosf(orbit_angle[1]) * orbit_radius[1] * orbit_scale_x;
+    dots[1].y = orbit_cy + sinf(orbit_angle[1]) * orbit_radius[1] * orbit_scale_y;
 
-    dots[2].x = orbit_cx + cosf(orbit_angle[2]) * orbit_radius[2];
-    dots[2].y = orbit_cy + sinf(orbit_angle[2]) * orbit_radius[2];
+    dots[2].x = orbit_cx + cosf(orbit_angle[2]) * orbit_radius[2] * orbit_scale_x;
+    dots[2].y = orbit_cy + sinf(orbit_angle[2]) * orbit_radius[2] * orbit_scale_y;
 
     // Trigger redraw using LVGL's proper invalidation
     // This works correctly with RGB double-buffer anti-tearing
@@ -291,7 +296,7 @@ void setup()
     lv_label_set_text(sub_label_1, "БЛОК");                        // Cyrillic text
     lv_obj_set_style_text_font(sub_label_1, &minecraft_ten_96, 0); // Custom Minecraft 96px Cyrillic font
     lv_obj_set_style_text_color(sub_label_1, lv_color_white(), 0);
-    lv_obj_align_to(sub_label_1, main_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 10); // Adjusted spacing for larger font
+    lv_obj_align_to(sub_label_1, main_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 0); // Adjusted spacing for larger font
 
     // sub_label_2 = lv_label_create(lv_scr_act());
     // lv_label_set_text_fmt(sub_label_2, "ESP32_Display_Panel(%d.%d.%d)",
