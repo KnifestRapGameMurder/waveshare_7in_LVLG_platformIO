@@ -2,7 +2,6 @@
 #include "app_config.h"
 #include "console.h"
 #include "animation.h"
-#include "uart_handler.h"
 #include <Arduino.h>
 
 // UI object definitions

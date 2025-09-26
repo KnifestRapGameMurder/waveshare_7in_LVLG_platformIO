@@ -2,12 +2,20 @@
 #include <esp_display_panel.hpp>
 #include <lvgl.h>
 #include "lvgl_v8_port.h"
+#include "UARTProtocol.h"
 
 using namespace esp_panel::drivers;
 using namespace esp_panel::board;
 
-// UART2 for slave communication (when switcher is on UART2)
+// UART2 for slave communication with proper protocol
 HardwareSerial slaveUART(2);
+UARTProtocol protocol(&slaveUART);
+
+// Test variables
+static int buttonPressCount[16] = {0}; // Track button press counts
+
+// Forward declarations
+void handleSlaveMessage(const ProtocolMessage &message);
 
 // LVGL objects for on-screen logging
 static lv_obj_t *log_screen;
@@ -135,117 +143,140 @@ void setup()
     slaveUART.begin(115200, SERIAL_8N1, 44, 43); // RX=44, TX=43
 
     // Log initialization
+    screen_log("=== SIMPLE BUTTON-LED TEST ===");
     screen_log("System initialized");
     screen_log("UART2 configured on pins RX=44, TX=43");
     screen_log("Baud rate: 115200");
-    screen_log("MODE: MASTER SENDING TO SLAVE");
-    screen_log("Sending test messages every 2 seconds...");
+    screen_log("Test: Button Press -> LED On");
+    screen_log("Test: Button Release -> LED Off");
+    screen_log("Sending handshake to slave...");
 
-    update_status("UART2 Master Sender - Ready");
+    // Send handshake to establish connection
+    protocol.sendMessage(protocol.createHandshakeMessage("MASTER_BUTTON_LED_TEST"));
+
+    update_status("Simple Test - Waiting for button events...");
 }
 
 void loop()
 {
     // Process LVGL tasks
     lv_timer_handler();
-
-    // Send test messages to slave every 2 seconds
-    static unsigned long lastSendTime = 0;
-    static unsigned long messageCounter = 0;
     unsigned long now = millis();
 
-    // if (now - lastSendTime >= 5000) // Every 5 seconds
-    // {
-    //     lastSendTime = now;
-    //     messageCounter++;
-
-    //     // Create test message
-    //     char testMessage[100];
-    //     snprintf(testMessage, sizeof(testMessage),
-    //              "MASTER_TEST_MSG_%lu_TIME_%lu", messageCounter, now);
-
-    //     // Send via UART2
-    //     slaveUART.println(testMessage);
-
-    //     // Log to screen
-    //     lvgl_port_lock(-1);
-    //     char log_msg[150];
-    //     snprintf(log_msg, sizeof(log_msg), "SENT: %s", testMessage);
-    //     screen_log(log_msg);
-
-    //     char status_msg[100];
-    //     snprintf(status_msg, sizeof(status_msg), "Sent message #%lu", messageCounter);
-    //     update_status(status_msg);
-
-    //     lvgl_port_unlock();
-    // }
-
-    // Check for slave data FIRST - highest priority
-    if (slaveUART.available())
+    // Handle incoming protocol messages from slave
+    ProtocolMessage message;
+    if (protocol.receiveMessage(message))
     {
-        lvgl_port_lock(-1);
-
-        // Read ALL available data immediately
-        String receivedData = "";
-        int bytesRead = 0;
-        while (slaveUART.available())
-        {
-            char c = slaveUART.read();
-            receivedData += c;
-            bytesRead++;
-            delay(1); // Small delay to let more data arrive
-        }
-
-        if (receivedData.length() > 0)
-        {
-            // Display the raw received message
-            char msg[400];
-            snprintf(msg, sizeof(msg), "SLAVE MSG (%d bytes): %s", bytesRead, receivedData.c_str());
-            screen_log(msg);
-
-            // Update status to show we got data
-            char status_update[100];
-            snprintf(status_update, sizeof(status_update), "RECEIVED DATA! %d bytes", bytesRead);
-            update_status(status_update);
-        }
-
-        lvgl_port_unlock();
+        handleSlaveMessage(message);
     }
 
-    // Status updates (less frequent, and won't interfere with data reading)
+    // Simple status update every 15 seconds
     static unsigned long lastStatus = 0;
-    if (now - lastStatus > 10000) // Every 10 seconds, less frequent
+    if (now - lastStatus > 15000)
     {
         lastStatus = now;
 
         lvgl_port_lock(-1);
-
-        char status_msg[200];
-        snprintf(status_msg, sizeof(status_msg),
-                 "STATUS: Uptime %lu sec, UART avail: %d bytes, Switcher=UART2",
-                 now / 1000, slaveUART.available());
+        char status_msg[100];
+        snprintf(status_msg, sizeof(status_msg), "STATUS: Uptime %lu sec", now / 1000);
         screen_log(status_msg);
-
-        // Just show connection status without consuming data
-        if (slaveUART.available() > 0)
-        {
-            char avail_msg[100];
-            snprintf(avail_msg, sizeof(avail_msg), ">>> %d BYTES WAITING - will be read next! <<<", slaveUART.available());
-            screen_log(avail_msg);
-        }
-        else
-        {
-            screen_log("No UART data detected - check connections/slave");
-        }
-
-        // Update main status
-        char main_status[100];
-        snprintf(main_status, sizeof(main_status),
-                 "UART2 Logger - Uptime: %lu sec", now / 1000);
-        update_status(main_status);
-
+        screen_log("Waiting for button events from slave...");
         lvgl_port_unlock();
     }
 
-    delay(50);
+    delay(10);
+}
+
+// Handle protocol messages from slave
+void handleSlaveMessage(const ProtocolMessage &message)
+{
+    lvgl_port_lock(-1);
+
+    switch (message.type)
+    {
+    case MSG_HANDSHAKE:
+        screen_log(">>> SLAVE CONNECTED! <<<");
+        screen_log(("Slave info: " + message.data).c_str());
+        protocol.sendMessage(protocol.createAckMessage("HANDSHAKE"));
+        update_status("Protocol Test - Slave connected!");
+        break;
+
+    case MSG_BUTTON_PRESSED:
+    {
+        char msg[100];
+        snprintf(msg, sizeof(msg), "BUTTON %d PRESSED", message.param1);
+        screen_log(msg);
+
+        // Light up the corresponding LED in GREEN
+        protocol.sendMessage(protocol.createLEDSetPixelMessage(message.param1, PROTO_COLOR_GREEN));
+
+        char response[100];
+        snprintf(response, sizeof(response), "-> Sent: LED %d ON (GREEN)", message.param1);
+        screen_log(response);
+
+        update_status(("Button " + String(message.param1) + " pressed - LED ON").c_str());
+    }
+    break;
+
+    case MSG_BUTTON_RELEASED:
+    {
+        char msg[100];
+        snprintf(msg, sizeof(msg), "BUTTON %d RELEASED", message.param1);
+        screen_log(msg);
+
+        // Turn off the corresponding LED
+        protocol.sendMessage(protocol.createLEDSetPixelMessage(message.param1, PROTO_COLOR_BLACK));
+
+        char response[100];
+        snprintf(response, sizeof(response), "-> Sent: LED %d OFF", message.param1);
+        screen_log(response);
+
+        update_status(("Button " + String(message.param1) + " released - LED OFF").c_str());
+    }
+    break;
+
+    case MSG_BUTTON_STATE:
+    {
+        char msg[100];
+        snprintf(msg, sizeof(msg), "BUTTON STATE: 0x%04X", message.param3);
+        screen_log(msg);
+    }
+    break;
+
+    case MSG_HALL_DETECTED:
+        screen_log(">>> HALL SENSOR DETECTED! <<<");
+        // Flash all LEDs when hall sensor detected
+        protocol.sendMessage(protocol.createLEDEffectMessage(PROTO_EFFECT_SPARKLE));
+        screen_log("-> Started SPARKLE effect");
+        break;
+
+    case MSG_HALL_REMOVED:
+        screen_log(">>> HALL SENSOR REMOVED <<<");
+        protocol.sendMessage(protocol.createLEDClearMessage());
+        screen_log("-> Cleared all LEDs");
+        break;
+
+    case MSG_STATUS:
+    {
+        char msg[150];
+        snprintf(msg, sizeof(msg), "Slave status - Time: %u, Buttons: 0x%04X",
+                 message.param3, (message.param2 << 8) | message.param1);
+        screen_log(msg);
+    }
+    break;
+
+    case MSG_ERROR:
+        screen_log(("SLAVE ERROR: " + message.data).c_str());
+        break;
+
+    case MSG_ACK:
+        screen_log(("Slave ACK: " + message.data).c_str());
+        break;
+
+    default:
+        screen_log("Unknown message from slave");
+        break;
+    }
+
+    lvgl_port_unlock();
 }
