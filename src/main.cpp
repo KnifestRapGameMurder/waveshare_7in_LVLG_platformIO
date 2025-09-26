@@ -193,7 +193,7 @@ static void animation_timer_cb(lv_timer_t *timer)
     // Check for idle timeout (return to loading screen if no interaction for 10 seconds)
     if (current_state == STATE_MAIN_MENU && (now - last_interaction_time) >= IDLE_TIMEOUT)
     {
-        Serial.println("[TIMEOUT] Idle timeout reached - returning to loading screen");
+        Serial.println("[ТАЙМ-АУТ] Досягнуто тайм-аут бездіяльності - повернення до екрану завантаження");
         current_state = STATE_LOADING;
         state_start_time = now;
         create_loading_screen();
@@ -243,20 +243,20 @@ static void menu_button_event_cb(lv_event_t *event)
 {
     lv_obj_t *btn = lv_event_get_target(event);
     int trainer_id = (int)(intptr_t)lv_event_get_user_data(event);
-    
-    Serial.printf("[MENU] Button %d pressed\n", trainer_id + 1);
-    
+
+    Serial.printf("[МЕНЮ] Натиснуто кнопку %d\n", trainer_id + 1);
+
     // Update interaction time to reset idle timeout
     last_interaction_time = lv_tick_get();
-    
+
     // Switch to selected trainer
     current_state = (AppState)(STATE_TRAINER_1 + trainer_id);
     state_start_time = lv_tick_get();
     create_trainer_screen(trainer_id);
-}// Back button event handler
+} // Back button event handler
 static void back_button_event_cb(lv_event_t *event)
 {
-    Serial.println("[BACK] Back button pressed - returning to main menu");
+    Serial.println("[НАЗАД] Натиснуто кнопку назад - повернення до головного меню");
     last_interaction_time = lv_tick_get();
     current_state = STATE_MAIN_MENU;
     state_start_time = lv_tick_get();
@@ -267,11 +267,11 @@ static void back_button_event_cb(lv_event_t *event)
 static void screen_touch_event_cb(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
-    Serial.printf("[TOUCH] Event received: %d, Current state: %d\n", code, current_state);
-    
+    Serial.printf("[ДОТИК] Отримано подію: %d, Поточний стан: %d\n", code, current_state);
+
     if (current_state == STATE_LOADING)
     {
-        Serial.println("[TOUCH] Switching from loading to main menu");
+        Serial.println("[ДОТИК] Перехід від завантаження до головного меню");
         current_state = STATE_MAIN_MENU;
         state_start_time = lv_tick_get();
         last_interaction_time = lv_tick_get();
@@ -279,7 +279,7 @@ static void screen_touch_event_cb(lv_event_t *event)
     }
     else
     {
-        Serial.printf("[TOUCH] Touch ignored - not in loading state (current: %d)\n", current_state);
+        Serial.printf("[ДОТИК] Дотик проігноровано - не в стані завантаження (поточний: %d)\n", current_state);
     }
 }
 
@@ -294,7 +294,7 @@ static void create_loading_screen()
     lv_obj_align(gradient_obj, LV_ALIGN_CENTER, 0, 0);
     lv_obj_clear_flag(gradient_obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(gradient_obj, gradient_draw_event_cb, LV_EVENT_DRAW_MAIN, NULL);
-    
+
     // Make gradient object clickable for touch detection
     lv_obj_add_flag(gradient_obj, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(gradient_obj, screen_touch_event_cb, LV_EVENT_CLICKED, NULL);
@@ -317,24 +317,24 @@ static void create_loading_screen()
     // Add touch events to screen to detect user interaction
     // Use multiple event types to ensure touch detection works
     lv_obj_add_event_cb(lv_scr_act(), screen_touch_event_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_add_event_cb(lv_scr_act(), screen_touch_event_cb, LV_EVENT_PRESSED, NULL);  
+    lv_obj_add_event_cb(lv_scr_act(), screen_touch_event_cb, LV_EVENT_PRESSED, NULL);
     lv_obj_add_event_cb(lv_scr_act(), screen_touch_event_cb, LV_EVENT_PRESS_LOST, NULL);
-    
-    Serial.println("[DEBUG] Loading screen created with touch events registered");
+
+    Serial.println("[НАЛАГОДЖЕННЯ] Екран завантаження створено з зареєстрованими подіями дотику");
 }
 
 // Create main menu with 4 trainer buttons taking full screen
 static void create_main_menu()
 {
-    Serial.println("[DEBUG] Creating main menu...");
+    Serial.println("[НАЛАГОДЖЕННЯ] Створення головного меню...");
     lv_obj_clean(lv_scr_act());
 
     // Create 4 trainer buttons taking all screen space in 2x2 grid
     const char *trainer_names[] = {
-        "ТРЕНАЖЁР 1",
-        "ТРЕНАЖЁР 2",
-        "ТРЕНАЖЁР 3",
-        "ТРЕНАЖЁР 4"};
+        "ТРЕНАЖЕР 1",
+        "ТРЕНАЖЕР 2",
+        "ТРЕНАЖЕР 3",
+        "ТРЕНАЖЕР 4"};
 
     // Different colors for each button
     uint32_t button_colors[] = {
@@ -383,7 +383,7 @@ static void create_main_menu()
 // Create trainer screen
 static void create_trainer_screen(int trainer_id)
 {
-    Serial.printf("[DEBUG] Creating trainer screen %d...\n", trainer_id + 1);
+    Serial.printf("[НАЛАГОДЖЕННЯ] Створення екрану тренажера %d...\n", trainer_id + 1);
     lv_obj_clean(lv_scr_act());
 
     // Create dark background
@@ -395,7 +395,7 @@ static void create_trainer_screen(int trainer_id)
 
     // Title
     char title_text[32];
-    snprintf(title_text, sizeof(title_text), "ТРЕНАЖЁР %d", trainer_id + 1);
+    snprintf(title_text, sizeof(title_text), "ТРЕНАЖЕР %d", trainer_id + 1);
     lv_obj_t *title = lv_label_create(lv_scr_act());
     lv_label_set_text(title, title_text);
     lv_obj_set_style_text_font(title, &minecraft_ten_48, 0);
@@ -404,7 +404,7 @@ static void create_trainer_screen(int trainer_id)
 
     // Placeholder content
     lv_obj_t *content = lv_label_create(lv_scr_act());
-    lv_label_set_text(content, "Здесь будет содержимое тренажёра");
+    lv_label_set_text(content, "Тут буде вміст тренажера");
     lv_obj_set_style_text_font(content, &minecraft_ten_48, 0);
     lv_obj_set_style_text_color(content, lv_color_hex(0xcccccc), 0);
     lv_obj_align(content, LV_ALIGN_CENTER, 0, 0);
@@ -431,10 +431,10 @@ static void create_trainer_screen(int trainer_id)
 void setup()
 {
     Serial.begin(115200);
-    Serial.println("=== ESP32-S3 RGB LCD Anti-Tearing Solution ===");
-    Serial.println("Based on ESP-BSP proven RGB double-buffer configuration");
+    Serial.println("=== ESP32-S3 RGB LCD Система Без Розривів ===");
+    Serial.println("Базується на перевіреній ESP-BSP RGB подвійний буфер конфігурації");
 
-    Serial.println("Initializing board with anti-tearing configuration...");
+    Serial.println("Ініціалізація плати з конфігурацією без розривів...");
     Board *board = new Board();
     board->init();
 
@@ -442,7 +442,7 @@ void setup()
 #if LVGL_PORT_AVOID_TEARING_MODE
     auto lcd = board->getLCD();
 
-    Serial.println("Configuring RGB double-buffer for anti-tearing...");
+    Serial.println("Налаштування RGB подвійного буфера для усунення розривів...");
     // Enable RGB double-buffer mode: 2 frame buffers for ping-pong operation
     lcd->configFrameBufferNumber(2); // RGB double-buffer mode
 
@@ -452,7 +452,7 @@ void setup()
     // Configure bounce buffer for ESP32-S3 RGB LCD (essential for anti-tearing)
     if (lcd_bus->getBasicAttributes().type == ESP_PANEL_BUS_TYPE_RGB)
     {
-        Serial.println("Configuring RGB bounce buffer for ESP32-S3...");
+        Serial.println("Налаштування RGB буфера відскоку для ESP32-S3...");
         // Bounce buffer size: screen_width * height_fraction (ESP-BSP recommendation)
         // This greatly reduces tearing artifacts on ESP32-S3 RGB displays
         int bounce_buffer_height = lcd->getFrameHeight() / 10; // 48 pixels for 480px height
@@ -460,33 +460,33 @@ void setup()
 
         static_cast<BusRGB *>(lcd_bus)->configRGB_BounceBufferSize(bounce_buffer_size);
 
-        Serial.printf("RGB bounce buffer configured: %dx%d pixels\n",
+        Serial.printf("RGB буфер відскоку налаштовано: %dx%d пікселів\n",
                       lcd->getFrameWidth(), bounce_buffer_height);
     }
 #endif
 #endif
 
     assert(board->begin());
-    Serial.println("Board initialized with anti-tearing RGB configuration!");
+    Serial.println("Плата ініціалізована з RGB конфігурацією без розривів!");
 
-    Serial.println("Initializing LVGL with full-refresh mode...");
+    Serial.println("Ініціалізація LVGL з повним оновленням...");
     lvgl_port_init(board->getLCD(), board->getTouch());
 
-    Serial.println("Creating UI with anti-tearing gradient...");
+    Serial.println("Створення UI з градієнтом без розривів...");
 
     // Using custom Minecraft 96px font with Cyrillic support
     // Font includes Unicode range: ASCII (0x0020-0x007F) + Cyrillic (0x0410-0x044F)
-    Serial.println("Loading custom Cyrillic font: minecraft_ten_96");
-    Serial.printf("Font pointer: %p\n", &minecraft_ten_96);
-    Serial.printf("Font line height: %d\n", minecraft_ten_96.line_height);
-    Serial.println("Ready to display Cyrillic text with larger 96px font...");
+    Serial.println("Завантаження користувацького кириличного шрифту: minecraft_ten_96");
+    Serial.printf("Вказівник шрифту: %p\n", &minecraft_ten_96);
+    Serial.printf("Висота лінії шрифту: %d\n", minecraft_ten_96.line_height);
+    Serial.println("Готовий до відображення кириличного тексту з великим 96px шрифтом...");
     lvgl_port_lock(-1);
 
     // Get actual screen dimensions
     SCR_W = lv_disp_get_hor_res(NULL);
     SCR_H = lv_disp_get_ver_res(NULL);
 
-    Serial.printf("Screen resolution: %dx%d\n", SCR_W, SCR_H);
+    Serial.printf("Роздільність екрану: %dx%d\n", SCR_W, SCR_H);
 
     // Initialize orbit parameters
     orbit_cx = SCR_W * 0.5f;
@@ -511,8 +511,8 @@ void setup()
     state_start_time = lv_tick_get();
     last_interaction_time = state_start_time;
 
-    Serial.println("[DEBUG] App initialized - Starting in LOADING state");
-    Serial.printf("[DEBUG] Touch events: CLICKED=%d, PRESSED=%d, PRESS_LOST=%d\n", 
+    Serial.println("[НАЛАГОДЖЕННЯ] Додаток ініціалізовано - Запуск в стані ЗАВАНТАЖЕННЯ");
+    Serial.printf("[НАЛАГОДЖЕННЯ] Події дотику: CLICKED=%d, PRESSED=%d, PRESS_LOST=%d\n",
                   LV_EVENT_CLICKED, LV_EVENT_PRESSED, LV_EVENT_PRESS_LOST);
 
     // Create initial loading screen
@@ -523,9 +523,9 @@ void setup()
 
     lvgl_port_unlock();
 
-    Serial.println("=== ANTI-TEARING CONFIGURATION COMPLETE ===");
-    Serial.println("RGB LCD should now display smooth animation without tearing!");
-    Serial.println("Mode: RGB double-buffer + LVGL full-refresh (ESP-BSP proven solution)");
+    Serial.println("=== КОНФІГУРАЦІЯ БЕЗ РОЗРИВІВ ЗАВЕРШЕНА ===");
+    Serial.println("RGB LCD тепер повинен відображати плавну анімацію без розривів!");
+    Serial.println("Режим: RGB подвійний буфер + LVGL повне оновлення (перевірене ESP-BSP рішення)");
 }
 
 void loop()
