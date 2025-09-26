@@ -10,9 +10,33 @@
 #include "lvgl_v8_port.h"
 #include "lv_conf.h"
 #include <math.h>
+#include "uart_protocol.h"
 
 using namespace esp_panel::drivers;
 using namespace esp_panel::board;
+
+// External font declarations
+extern "C"
+{
+    extern const lv_font_t minecraft_ten_48;
+    extern const lv_font_t minecraft_ten_96;
+}
+
+// Forward declarations
+static void create_loading_screen();
+static void create_main_menu();
+static void create_trainer_screen(int trainer_id);
+static void create_console_screen();
+static void screen_touch_event_cb(lv_event_t *event);
+
+// UART callback functions
+static void uart_response_callback(uint8_t cmd, uint8_t *data, uint8_t len);
+static void uart_error_callback(uint8_t error_code, const char *message);
+
+// Console functions
+static void console_add_log(const char *message);
+static void console_back_event_cb(lv_event_t *event);
+static void console_clear_event_cb(lv_event_t *event);
 
 // ---------- ANTI-TEARING CONFIGURATION (Based on ESP-BSP proven solutions) ----------
 // RGB double-buffer + LVGL full-refresh mode (recommended for ESP32-S3)
@@ -20,6 +44,11 @@ using namespace esp_panel::board;
 
 static const uint32_t TARGET_FPS = 30;
 static const uint32_t FRAME_MS = 1000 / TARGET_FPS;
+
+// ---------- UART COMMUNICATION SETUP ----------
+// ESP32-S3 pins: TX2=GPIO43, RX2=GPIO44
+HardwareSerial peripheralUART(2);
+UARTProtocol *uart_protocol;
 
 // Application states
 enum AppState
@@ -29,7 +58,8 @@ enum AppState
     STATE_TRAINER_1, // Training module 1
     STATE_TRAINER_2, // Training module 2
     STATE_TRAINER_3, // Training module 3
-    STATE_TRAINER_4  // Training module 4
+    STATE_TRAINER_4, // Training module 4
+    STATE_CONSOLE    // Debug console window
 };
 
 static AppState current_state = STATE_LOADING;
@@ -50,11 +80,22 @@ static lv_obj_t *menu_title;
 static lv_obj_t *menu_buttons[4];
 static lv_obj_t *back_button;
 
+// UI objects for console window
+static lv_obj_t *console_screen;
+static lv_obj_t *console_title;
+static lv_obj_t *console_textarea;
+static lv_obj_t *console_back_btn;
+static lv_obj_t *console_clear_btn;
+
 // Forward declarations
 static void create_loading_screen();
 static void create_main_menu();
 static void create_trainer_screen(int trainer_id);
 static void screen_touch_event_cb(lv_event_t *event);
+
+// UART callback functions
+static void uart_response_callback(uint8_t cmd, uint8_t *data, uint8_t len);
+static void uart_error_callback(uint8_t error_code, const char *message);
 
 // Параметри екрану та анімації
 static int32_t SCR_W = 800, SCR_H = 480;
@@ -249,10 +290,45 @@ static void menu_button_event_cb(lv_event_t *event)
     // Update interaction time to reset idle timeout
     last_interaction_time = lv_tick_get();
 
-    // Switch to selected trainer
-    current_state = (AppState)(STATE_TRAINER_1 + trainer_id);
-    state_start_time = lv_tick_get();
-    create_trainer_screen(trainer_id);
+    // Switch to selected trainer or console
+    if (trainer_id == 3)
+    {
+        // Console button (4th button)
+        current_state = STATE_CONSOLE;
+        state_start_time = lv_tick_get();
+        create_console_screen();
+    }
+    else
+    {
+        // Regular trainer button
+        current_state = (AppState)(STATE_TRAINER_1 + trainer_id);
+        state_start_time = lv_tick_get();
+        create_trainer_screen(trainer_id);
+
+        // Send LED commands to peripheral for visual feedback
+        if (uart_protocol && uart_protocol->is_connected())
+        {
+            // Turn on LED corresponding to selected trainer
+            uart_protocol->led_set(trainer_id, true, 255);
+
+            // Set RGB LED to match trainer color
+            switch (trainer_id)
+            {
+            case 0:
+                uart_protocol->led_rgb(0, 46, 139, 87);
+                break; // Sea Green
+            case 1:
+                uart_protocol->led_rgb(0, 65, 105, 225);
+                break; // Royal Blue
+            case 2:
+                uart_protocol->led_rgb(0, 220, 20, 60);
+                break; // Crimson Red
+            }
+
+            // Start training session
+            uart_protocol->training_start(trainer_id);
+        }
+    }
 } // Back button event handler
 static void back_button_event_cb(lv_event_t *event)
 {
@@ -261,6 +337,19 @@ static void back_button_event_cb(lv_event_t *event)
     current_state = STATE_MAIN_MENU;
     state_start_time = lv_tick_get();
     create_main_menu();
+
+    // Stop training session and turn off LEDs
+    if (uart_protocol && uart_protocol->is_connected())
+    {
+        uart_protocol->training_stop();
+
+        // Turn off all LEDs
+        for (int i = 0; i < 4; i++)
+        {
+            uart_protocol->led_set(i, false, 0);
+        }
+        uart_protocol->led_rgb(0, 0, 0, 0); // Turn off RGB LED
+    }
 }
 
 // Screen touch event handler - switches from loading to main menu
@@ -329,19 +418,19 @@ static void create_main_menu()
     Serial.println("[НАЛАГОДЖЕННЯ] Створення головного меню...");
     lv_obj_clean(lv_scr_act());
 
-    // Create 4 trainer buttons taking all screen space in 2x2 grid
+    // Create 4 trainer buttons + 1 console button
     const char *trainer_names[] = {
-        "ТРЕНАЖЕР 1",
-        "ТРЕНАЖЕР 2",
-        "ТРЕНАЖЕР 3",
-        "ТРЕНАЖЕР 4"};
+        "TRAINER 1",
+        "TRAINER 2",
+        "TRAINER 3",
+        "CONSOLE"};
 
     // Different colors for each button
     uint32_t button_colors[] = {
         0x2E8B57, // Sea Green
         0x4169E1, // Royal Blue
         0xDC143C, // Crimson Red
-        0xFF8C00  // Dark Orange
+        0x9932CC  // Dark Orchid (Console)
     };
 
     // Each button takes half of screen width and height
@@ -526,9 +615,441 @@ void setup()
     Serial.println("=== КОНФІГУРАЦІЯ БЕЗ РОЗРИВІВ ЗАВЕРШЕНА ===");
     Serial.println("RGB LCD тепер повинен відображати плавну анімацію без розривів!");
     Serial.println("Режим: RGB подвійний буфер + LVGL повне оновлення (перевірене ESP-BSP рішення)");
+
+    // Initialize UART communication with peripheral driver
+    Serial.println("\n=== ІНІЦІАЛІЗАЦІЯ UART ПРОТОКОЛУ ===");
+    uart_protocol = new UARTProtocol(&peripheralUART);
+
+    if (uart_protocol->begin(115200))
+    {
+        uart_protocol->set_response_callback(uart_response_callback);
+        uart_protocol->set_error_callback(uart_error_callback);
+
+        Serial.println("UART протокол ініціалізовано на GPIO43/44");
+        Serial.println("Спроба підключення до периферійного драйвера...");
+
+        if (uart_protocol->connect(5000))
+        {
+            Serial.println("✅ Успішно підключено до периферійного драйвера!");
+
+            // Test peripheral connection
+            uart_protocol->ping();
+            uart_protocol->get_status();
+
+            // Enable automatic sensor reporting (every 5 seconds)
+            uart_protocol->sensor_auto_enable(0, 5000);  // Temperature sensor
+            uart_protocol->sensor_auto_enable(1, 10000); // Light sensor
+        }
+        else
+        {
+            Serial.println("⚠️ Не вдалося підключитися до периферійного драйвера");
+            Serial.println("Програма продовжить роботу без зовнішніх периферійних пристроїв");
+        }
+    }
+    else
+    {
+        Serial.println("❌ Помилка ініціалізації UART протоколу");
+    }
+    Serial.println("=== UART ПРОТОКОЛ ГОТОВИЙ ===\n");
+}
+
+// UART callback implementations
+static void uart_response_callback(uint8_t cmd, uint8_t *data, uint8_t len)
+{
+    Serial.printf("[UART CALLBACK] Отримано відповідь: CMD=0x%02X, LEN=%d\n", cmd, len);
+    char log_buffer[256];
+
+    switch (cmd)
+    {
+    case CMD_BTN_STATE:
+        if (len >= 2)
+        {
+            uint8_t btn_id = data[0];
+            uint8_t btn_state = data[1];
+            Serial.printf("[КНОПКА] Кнопка %d: %s\n", btn_id,
+                          btn_state == 1 ? "НАТИСНУТА" : "ВІДПУЩЕНА");
+
+            snprintf(log_buffer, sizeof(log_buffer), "Button %d: %s",
+                     btn_id, btn_state == 1 ? "PRESSED" : "RELEASED");
+            console_add_log(log_buffer);
+
+            // Handle button press - could trigger menu actions
+            if (btn_state == 1)
+            {
+                last_interaction_time = lv_tick_get();
+
+                // Map hardware buttons to training functions
+                if (current_state == STATE_MAIN_MENU && btn_id < 4)
+                {
+                    current_state = (AppState)(STATE_TRAINER_1 + btn_id);
+                    create_trainer_screen(btn_id);
+                }
+            }
+        }
+        break;
+
+    case CMD_SENSOR_DATA:
+        if (len >= 3)
+        {
+            uint8_t sensor_id = data[0];
+            uint8_t sensor_type = data[1];
+            Serial.printf("[СЕНСОР] Сенсор %d (тип %d): дані отримані\n", sensor_id, sensor_type);
+
+            char log_buffer[256];
+            // Process sensor data based on type
+            switch (sensor_type)
+            {
+            case 0: // Temperature
+                if (len >= 5)
+                {
+                    int16_t temp = (data[2] << 8) | data[3];
+                    Serial.printf("[ТЕМПЕРАТУРА] %d.%d°C\n", temp / 10, temp % 10);
+                    snprintf(log_buffer, sizeof(log_buffer), "Temperature: %d.%d°C", temp / 10, temp % 10);
+                    console_add_log(log_buffer);
+                }
+                break;
+            case 1: // Humidity
+                if (len >= 4)
+                {
+                    uint8_t humidity = data[2];
+                    Serial.printf("[ВОЛОГІСТЬ] %d%%\n", humidity);
+                    snprintf(log_buffer, sizeof(log_buffer), "Humidity: %d%%", humidity);
+                    console_add_log(log_buffer);
+                }
+                break;
+            case 3: // Light
+                if (len >= 5)
+                {
+                    uint16_t light = (data[2] << 8) | data[3];
+                    Serial.printf("[ОСВІТЛЕННЯ] %d lux\n", light);
+                    snprintf(log_buffer, sizeof(log_buffer), "Light: %d lux", light);
+                    console_add_log(log_buffer);
+                }
+                break;
+            case 4: // Hall sensor (magnetic)
+                if (len >= 4)
+                {
+                    uint8_t hall_state = data[2];
+                    Serial.printf("[МАГНІТНИЙ СЕНСОР] Стан: %s\n", hall_state ? "ВИЯВЛЕНО" : "НЕ ВИЯВЛЕНО");
+                    snprintf(log_buffer, sizeof(log_buffer), "Magnet: %s", hall_state ? "DETECTED" : "NOT DETECTED");
+                    console_add_log(log_buffer);
+                }
+                break;
+            }
+        }
+        break;
+
+    case CMD_TRAINING_STATUS:
+        if (len >= 2)
+        {
+            uint8_t training_id = data[0];
+            uint8_t progress = data[1];
+            Serial.printf("[ТРЕНУВАННЯ] Тренажер %d: прогрес %d%%\n", training_id + 1, progress);
+            snprintf(log_buffer, sizeof(log_buffer), "Trainer %d: %d%%", training_id + 1, progress);
+            console_add_log(log_buffer);
+        }
+        break;
+
+    case CMD_PONG:
+        Serial.println("[З'ЄДНАННЯ] Периферійний пристрій відповів на ping");
+        console_add_log("Connection active (PONG)");
+        break;
+
+    default:
+        Serial.printf("[UART] Невідома команда: 0x%02X\n", cmd);
+        snprintf(log_buffer, sizeof(log_buffer), "Unknown command: 0x%02X", cmd);
+        console_add_log(log_buffer);
+        break;
+    }
+}
+
+static void uart_error_callback(uint8_t error_code, const char *message)
+{
+    Serial.printf("[UART ПОМИЛКА] Код: 0x%02X, Повідомлення: %s\n", error_code, message);
+
+    char log_buffer[256];
+    snprintf(log_buffer, sizeof(log_buffer), "UART Error: %s (0x%02X)", message, error_code);
+    console_add_log(log_buffer);
+
+    // Handle different error types
+    switch (error_code)
+    {
+    case ERR_TIMEOUT:
+        Serial.println("[UART] Спроба перепідключення...");
+        // Could attempt reconnection here
+        break;
+    case ERR_CRC_MISMATCH:
+        Serial.println("[UART] Помилка контрольної суми - можливо перешкоди");
+        break;
+    case ERR_HARDWARE:
+        Serial.println("[UART] Помилка обладнання периферії");
+        break;
+    }
+}
+
+// Console implementation
+static void console_add_log(const char *message)
+{
+    if (console_textarea == NULL)
+        return;
+
+    // Get current time for timestamp
+    uint32_t now = millis();
+    uint32_t seconds = now / 1000;
+    uint32_t minutes = seconds / 60;
+    uint32_t hours = minutes / 60;
+
+    char timestamp[32];
+    snprintf(timestamp, sizeof(timestamp), "[%02lu:%02lu:%02lu] ",
+             hours % 24, minutes % 60, seconds % 60);
+
+    // Add timestamped message to console
+    const char *current_text = lv_textarea_get_text(console_textarea);
+    char *new_text = (char *)malloc(strlen(current_text) + strlen(timestamp) + strlen(message) + 10);
+
+    if (new_text)
+    {
+        strcpy(new_text, current_text);
+        strcat(new_text, timestamp);
+        strcat(new_text, message);
+        strcat(new_text, "\n");
+
+        lv_textarea_set_text(console_textarea, new_text);
+
+        // Auto-scroll to bottom
+        lv_obj_scroll_to_y(console_textarea, LV_COORD_MAX, LV_ANIM_ON);
+
+        free(new_text);
+    }
+}
+
+static void console_back_event_cb(lv_event_t *event)
+{
+    Serial.println("[CONSOLE] Returning to main menu");
+    last_interaction_time = lv_tick_get();
+    current_state = STATE_MAIN_MENU;
+    state_start_time = lv_tick_get();
+    create_main_menu();
+}
+
+static void console_clear_event_cb(lv_event_t *event)
+{
+    Serial.println("[CONSOLE] Clearing logs");
+    if (console_textarea)
+    {
+        lv_textarea_set_text(console_textarea, "");
+        console_add_log("Console cleared");
+    }
+}
+
+static void create_console_screen()
+{
+    Serial.println("[DEBUG] Creating console screen...");
+    lv_obj_clean(lv_scr_act());
+
+    // Create dark background
+    lv_obj_t *bg = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
+    lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a1a), 0);
+    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Title
+    console_title = lv_label_create(lv_scr_act());
+    lv_label_set_text(console_title, "UART CONSOLE");
+    lv_obj_set_style_text_font(console_title, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_color(console_title, lv_color_hex(0x9932CC), 0);
+    lv_obj_align(console_title, LV_ALIGN_TOP_MID, 0, 10);
+
+    // Console textarea (main log area)
+    console_textarea = lv_textarea_create(lv_scr_act());
+    lv_obj_set_size(console_textarea, SCR_W - 40, SCR_H - 150);
+    lv_obj_align(console_textarea, LV_ALIGN_CENTER, 0, -10);
+
+    // Console styling
+    lv_obj_set_style_bg_color(console_textarea, lv_color_hex(0x000000), 0);
+    lv_obj_set_style_text_color(console_textarea, lv_color_hex(0x00FF00), 0); // Green terminal text
+    lv_obj_set_style_border_color(console_textarea, lv_color_hex(0x9932CC), 0);
+    lv_obj_set_style_border_width(console_textarea, 2, 0);
+    lv_obj_set_style_radius(console_textarea, 8, 0);
+
+    // Set readonly
+    lv_textarea_set_text(console_textarea, "");
+    lv_obj_add_state(console_textarea, LV_STATE_DISABLED);
+
+    // Button container
+    lv_obj_t *btn_container = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(btn_container, SCR_W - 40, 60);
+    lv_obj_align(btn_container, LV_ALIGN_BOTTOM_MID, 0, -10);
+    lv_obj_set_style_bg_opa(btn_container, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_opa(btn_container, LV_OPA_TRANSP, 0);
+    lv_obj_set_flex_flow(btn_container, LV_FLEX_FLOW_ROW);
+    lv_obj_set_style_pad_gap(btn_container, 20, 0);
+    lv_obj_set_flex_align(btn_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    // Clear button
+    console_clear_btn = lv_btn_create(btn_container);
+    lv_obj_set_size(console_clear_btn, 140, 50);
+    lv_obj_set_style_bg_color(console_clear_btn, lv_color_hex(0xFF6B35), 0);
+    lv_obj_set_style_bg_color(console_clear_btn, lv_color_hex(0xFF8C69), LV_STATE_PRESSED);
+
+    lv_obj_t *clear_label = lv_label_create(console_clear_btn);
+    lv_label_set_text(clear_label, "CLEAR");
+    lv_obj_set_style_text_font(clear_label, &minecraft_ten_48, 0);
+    lv_obj_center(clear_label);
+
+    // Back button
+    console_back_btn = lv_btn_create(btn_container);
+    lv_obj_set_size(console_back_btn, 140, 50);
+    lv_obj_set_style_bg_color(console_back_btn, lv_color_hex(0x444444), 0);
+    lv_obj_set_style_bg_color(console_back_btn, lv_color_hex(0x666666), LV_STATE_PRESSED);
+
+    lv_obj_t *back_label = lv_label_create(console_back_btn);
+    lv_label_set_text(back_label, "BACK");
+    lv_obj_set_style_text_font(back_label, &minecraft_ten_48, 0);
+    lv_obj_center(back_label);
+
+    // Add event handlers
+    lv_obj_add_event_cb(console_clear_btn, console_clear_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(console_back_btn, console_back_event_cb, LV_EVENT_CLICKED, NULL);
+
+    // Add initial welcome message
+    console_add_log("UART Console started");
+    console_add_log("Waiting for peripheral device data...");
+
+    if (uart_protocol && uart_protocol->is_connected())
+    {
+        console_add_log("Connection to peripheral active");
+    }
+    else
+    {
+        console_add_log("Peripheral device not connected");
+    }
+}
+
+// Simple text-based UART parser for slave device - logs everything received
+void handle_slave_uart_data()
+{
+    if (peripheralUART.available())
+    {
+        String receivedData = peripheralUART.readStringUntil('\n');
+        receivedData.trim();
+
+        if (receivedData.length() > 0)
+        {
+            Serial.printf("📡 Raw UART Data: %s\n", receivedData.c_str());
+
+            // Log ALL received data to console (this is what you want to see!)
+            char log_buffer[256];
+            snprintf(log_buffer, sizeof(log_buffer), "RX: %s", receivedData.c_str());
+            console_add_log(log_buffer);
+
+            // Additionally parse specific message formats if needed
+            if (receivedData.startsWith("SENSOR_DATA"))
+            {
+                // Parse: SENSOR_DATA,HALL,EVENT,COUNT,TIMESTAMP,STATE
+                int firstComma = receivedData.indexOf(',');
+                int secondComma = receivedData.indexOf(',', firstComma + 1);
+                int thirdComma = receivedData.indexOf(',', secondComma + 1);
+                int fourthComma = receivedData.indexOf(',', thirdComma + 1);
+                int fifthComma = receivedData.indexOf(',', fourthComma + 1);
+
+                if (fifthComma > 0)
+                {
+                    String sensorType = receivedData.substring(firstComma + 1, secondComma);
+                    String event = receivedData.substring(secondComma + 1, thirdComma);
+                    String count = receivedData.substring(thirdComma + 1, fourthComma);
+                    String timestamp = receivedData.substring(fourthComma + 1, fifthComma);
+                    String state = receivedData.substring(fifthComma + 1);
+
+                    if (event == "DETECTED")
+                    {
+                        snprintf(log_buffer, sizeof(log_buffer), ">>> MAGNET DETECTED! Count: %s", count.c_str());
+                        console_add_log(log_buffer);
+                    }
+                    else if (event == "REMOVED")
+                    {
+                        snprintf(log_buffer, sizeof(log_buffer), ">>> Magnet removed. Count: %s", count.c_str());
+                        console_add_log(log_buffer);
+                    }
+                    else
+                    {
+                        snprintf(log_buffer, sizeof(log_buffer), ">>> %s: %s (#%s)",
+                                 sensorType.c_str(), event.c_str(), count.c_str());
+                        console_add_log(log_buffer);
+                    }
+                }
+            }
+            else if (receivedData.startsWith("STATUS_UPDATE"))
+            {
+                console_add_log(">>> Status updated");
+
+                int pos = receivedData.indexOf("DETECTIONS=");
+                if (pos > 0)
+                {
+                    int end = receivedData.indexOf(',', pos);
+                    String detections = receivedData.substring(pos + 11, end);
+                    snprintf(log_buffer, sizeof(log_buffer), "    Total detections: %s", detections.c_str());
+                    console_add_log(log_buffer);
+                }
+
+                pos = receivedData.indexOf("UPTIME=");
+                if (pos > 0)
+                {
+                    int end = receivedData.indexOf(',', pos);
+                    String uptime = receivedData.substring(pos + 7, end);
+                    snprintf(log_buffer, sizeof(log_buffer), "    Uptime: %s sec", uptime.c_str());
+                    console_add_log(log_buffer);
+                }
+
+                pos = receivedData.indexOf("HEAP=");
+                if (pos > 0)
+                {
+                    String heap = receivedData.substring(pos + 5);
+                    snprintf(log_buffer, sizeof(log_buffer), "    Free memory: %s bytes", heap.c_str());
+                    console_add_log(log_buffer);
+                }
+            }
+            else if (receivedData == "ESP32_SLAVE_READY")
+            {
+                console_add_log(">>> Peripheral device ready!");
+            }
+            else if (receivedData == "PONG")
+            {
+                console_add_log(">>> Peripheral replied to PING");
+            }
+            else if (receivedData.startsWith("ESP32_SLAVE_MSG"))
+            {
+                // Parse your specific message format: ESP32_SLAVE_MSG_123_TIME_456789
+                console_add_log(">>> Slave message received");
+            }
+        }
+    }
 }
 
 void loop()
 {
+    // Handle simple text-based UART from slave
+    handle_slave_uart_data();
+
+    // Update UART communication (binary protocol)
+    if (uart_protocol)
+    {
+        uart_protocol->update();
+    }
+
+    // Debug: Show UART activity in serial monitor
+    static uint32_t last_debug_time = 0;
+    uint32_t now = millis();
+    if (now - last_debug_time > 5000) // Every 5 seconds
+    {
+        last_debug_time = now;
+        Serial.printf("[DEBUG] UART available bytes: %d\n", peripheralUART.available());
+        if (current_state == STATE_CONSOLE)
+        {
+            Serial.println("[DEBUG] Console window is active");
+        }
+    }
+
     delay(5);
 }
