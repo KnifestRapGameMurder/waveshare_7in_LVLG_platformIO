@@ -21,13 +21,40 @@ using namespace esp_panel::board;
 static const uint32_t TARGET_FPS = 30;
 static const uint32_t FRAME_MS = 1000 / TARGET_FPS;
 
-// UI об'єкти
+// Application states
+enum AppState
+{
+    STATE_LOADING,   // Loading screen with animation
+    STATE_MAIN_MENU, // Main menu with 4 training buttons
+    STATE_TRAINER_1, // Training module 1
+    STATE_TRAINER_2, // Training module 2
+    STATE_TRAINER_3, // Training module 3
+    STATE_TRAINER_4  // Training module 4
+};
+
+static AppState current_state = STATE_LOADING;
+static uint32_t state_start_time = 0;
+static const uint32_t LOADING_DURATION = 5000; // 5 seconds
+static const uint32_t IDLE_TIMEOUT = 10000;    // 10 seconds idle timeout
+static uint32_t last_interaction_time = 0;
+
+// UI об'єкти for loading screen
+static lv_obj_t *loading_screen;
 static lv_obj_t *gradient_obj;
 static lv_obj_t *main_label;
 static lv_obj_t *sub_label_1;
-static lv_obj_t *sub_label_2;
-static lv_obj_t *desc_label_1;
-static lv_obj_t *desc_label_2;
+
+// UI objects for main menu
+static lv_obj_t *menu_screen;
+static lv_obj_t *menu_title;
+static lv_obj_t *menu_buttons[4];
+static lv_obj_t *back_button;
+
+// Forward declarations
+static void create_loading_screen();
+static void create_main_menu();
+static void create_trainer_screen(int trainer_id);
+static void screen_touch_event_cb(lv_event_t *event);
 
 // Параметри екрану та анімації
 static int32_t SCR_W = 800, SCR_H = 480;
@@ -163,6 +190,20 @@ static void animation_timer_cb(lv_timer_t *timer)
     static uint32_t last_time = 0;
     uint32_t now = lv_tick_get();
 
+    // Check for idle timeout (return to loading screen if no interaction for 10 seconds)
+    if (current_state == STATE_MAIN_MENU && (now - last_interaction_time) >= IDLE_TIMEOUT)
+    {
+        Serial.println("[TIMEOUT] Idle timeout reached - returning to loading screen");
+        current_state = STATE_LOADING;
+        state_start_time = now;
+        create_loading_screen();
+        return;
+    }
+
+    // Only run animation in loading state
+    if (current_state != STATE_LOADING)
+        return;
+
     // Proper delta time calculation for FPS-independent animation
     float dt = (now - last_time) / 1000.0f;         // Convert ms to seconds
     if (last_time == 0 || dt < 0.001f || dt > 0.1f) // Handle first frame and extreme values
@@ -193,7 +234,198 @@ static void animation_timer_cb(lv_timer_t *timer)
 
     // Trigger redraw using LVGL's proper invalidation
     // This works correctly with RGB double-buffer anti-tearing
-    lv_obj_invalidate(gradient_obj);
+    if (gradient_obj != NULL)
+        lv_obj_invalidate(gradient_obj);
+}
+
+// Button event handler for main menu
+static void menu_button_event_cb(lv_event_t *event)
+{
+    lv_obj_t *btn = lv_event_get_target(event);
+    int trainer_id = (int)(intptr_t)lv_event_get_user_data(event);
+    
+    Serial.printf("[MENU] Button %d pressed\n", trainer_id + 1);
+    
+    // Update interaction time to reset idle timeout
+    last_interaction_time = lv_tick_get();
+    
+    // Switch to selected trainer
+    current_state = (AppState)(STATE_TRAINER_1 + trainer_id);
+    state_start_time = lv_tick_get();
+    create_trainer_screen(trainer_id);
+}// Back button event handler
+static void back_button_event_cb(lv_event_t *event)
+{
+    Serial.println("[BACK] Back button pressed - returning to main menu");
+    last_interaction_time = lv_tick_get();
+    current_state = STATE_MAIN_MENU;
+    state_start_time = lv_tick_get();
+    create_main_menu();
+}
+
+// Screen touch event handler - switches from loading to main menu
+static void screen_touch_event_cb(lv_event_t *event)
+{
+    lv_event_code_t code = lv_event_get_code(event);
+    Serial.printf("[TOUCH] Event received: %d, Current state: %d\n", code, current_state);
+    
+    if (current_state == STATE_LOADING)
+    {
+        Serial.println("[TOUCH] Switching from loading to main menu");
+        current_state = STATE_MAIN_MENU;
+        state_start_time = lv_tick_get();
+        last_interaction_time = lv_tick_get();
+        create_main_menu();
+    }
+    else
+    {
+        Serial.printf("[TOUCH] Touch ignored - not in loading state (current: %d)\n", current_state);
+    }
+}
+
+// Create loading screen with orbital animation
+static void create_loading_screen()
+{
+    lv_obj_clean(lv_scr_act());
+
+    // Create gradient background object
+    gradient_obj = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(gradient_obj, LV_HOR_RES, LV_VER_RES);
+    lv_obj_align(gradient_obj, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_clear_flag(gradient_obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(gradient_obj, gradient_draw_event_cb, LV_EVENT_DRAW_MAIN, NULL);
+    
+    // Make gradient object clickable for touch detection
+    lv_obj_add_flag(gradient_obj, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(gradient_obj, screen_touch_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(gradient_obj, screen_touch_event_cb, LV_EVENT_PRESSED, NULL);
+
+    // Add main title with 96px font
+    main_label = lv_label_create(lv_scr_act());
+    lv_label_set_text(main_label, "НЕЙРО");
+    lv_obj_set_style_text_font(main_label, &minecraft_ten_96, 0);
+    lv_obj_set_style_text_color(main_label, lv_color_white(), 0);
+    lv_obj_align(main_label, LV_ALIGN_CENTER, 0, -80);
+
+    // Add subtitle with 96px font
+    sub_label_1 = lv_label_create(lv_scr_act());
+    lv_label_set_text(sub_label_1, "БЛОК");
+    lv_obj_set_style_text_font(sub_label_1, &minecraft_ten_96, 0);
+    lv_obj_set_style_text_color(sub_label_1, lv_color_white(), 0);
+    lv_obj_align_to(sub_label_1, main_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
+
+    // Add touch events to screen to detect user interaction
+    // Use multiple event types to ensure touch detection works
+    lv_obj_add_event_cb(lv_scr_act(), screen_touch_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(lv_scr_act(), screen_touch_event_cb, LV_EVENT_PRESSED, NULL);  
+    lv_obj_add_event_cb(lv_scr_act(), screen_touch_event_cb, LV_EVENT_PRESS_LOST, NULL);
+    
+    Serial.println("[DEBUG] Loading screen created with touch events registered");
+}
+
+// Create main menu with 4 trainer buttons taking full screen
+static void create_main_menu()
+{
+    Serial.println("[DEBUG] Creating main menu...");
+    lv_obj_clean(lv_scr_act());
+
+    // Create 4 trainer buttons taking all screen space in 2x2 grid
+    const char *trainer_names[] = {
+        "ТРЕНАЖЁР 1",
+        "ТРЕНАЖЁР 2",
+        "ТРЕНАЖЁР 3",
+        "ТРЕНАЖЁР 4"};
+
+    // Different colors for each button
+    uint32_t button_colors[] = {
+        0x2E8B57, // Sea Green
+        0x4169E1, // Royal Blue
+        0xDC143C, // Crimson Red
+        0xFF8C00  // Dark Orange
+    };
+
+    // Each button takes half of screen width and height
+    int btn_width = SCR_W / 2;
+    int btn_height = SCR_H / 2;
+
+    for (int i = 0; i < 4; i++)
+    {
+        int row = i / 2;
+        int col = i % 2;
+
+        menu_buttons[i] = lv_btn_create(lv_scr_act());
+        lv_obj_set_size(menu_buttons[i], btn_width, btn_height);
+
+        // Position buttons in corners
+        int x_pos = col * btn_width;
+        int y_pos = row * btn_height;
+        lv_obj_set_pos(menu_buttons[i], x_pos, y_pos);
+
+        // Button styling with different colors
+        lv_obj_set_style_bg_color(menu_buttons[i], lv_color_hex(button_colors[i]), 0);
+        lv_obj_set_style_bg_color(menu_buttons[i], lv_color_hex(button_colors[i] + 0x333333), LV_STATE_PRESSED);
+        lv_obj_set_style_border_color(menu_buttons[i], lv_color_white(), 0);
+        lv_obj_set_style_border_width(menu_buttons[i], 3, 0);
+        lv_obj_set_style_radius(menu_buttons[i], 0, 0); // Square corners
+
+        // Button label with 48px font
+        lv_obj_t *label = lv_label_create(menu_buttons[i]);
+        lv_label_set_text(label, trainer_names[i]);
+        lv_obj_set_style_text_font(label, &minecraft_ten_48, 0);
+        lv_obj_set_style_text_color(label, lv_color_white(), 0);
+        lv_obj_center(label);
+
+        // Add event handler
+        lv_obj_add_event_cb(menu_buttons[i], menu_button_event_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+    }
+}
+
+// Create trainer screen
+static void create_trainer_screen(int trainer_id)
+{
+    Serial.printf("[DEBUG] Creating trainer screen %d...\n", trainer_id + 1);
+    lv_obj_clean(lv_scr_act());
+
+    // Create dark background
+    lv_obj_t *bg = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
+    lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a1a), 0);
+    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Title
+    char title_text[32];
+    snprintf(title_text, sizeof(title_text), "ТРЕНАЖЁР %d", trainer_id + 1);
+    lv_obj_t *title = lv_label_create(lv_scr_act());
+    lv_label_set_text(title, title_text);
+    lv_obj_set_style_text_font(title, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_color(title, lv_color_white(), 0);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
+
+    // Placeholder content
+    lv_obj_t *content = lv_label_create(lv_scr_act());
+    lv_label_set_text(content, "Здесь будет содержимое тренажёра");
+    lv_obj_set_style_text_font(content, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_color(content, lv_color_hex(0xcccccc), 0);
+    lv_obj_align(content, LV_ALIGN_CENTER, 0, 0);
+
+    // Back button
+    back_button = lv_btn_create(lv_scr_act());
+    lv_obj_set_size(back_button, 200, 80);
+    lv_obj_align(back_button, LV_ALIGN_BOTTOM_MID, 0, -30);
+
+    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x444444), 0);
+    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x666666), LV_STATE_PRESSED);
+    lv_obj_set_style_border_color(back_button, lv_color_white(), 0);
+    lv_obj_set_style_border_width(back_button, 2, 0);
+
+    lv_obj_t *back_label = lv_label_create(back_button);
+    lv_label_set_text(back_label, "НАЗАД");
+    lv_obj_set_style_text_font(back_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
+    lv_obj_center(back_label);
+
+    lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_CLICKED, NULL);
 }
 
 void setup()
@@ -274,51 +506,19 @@ void setup()
     dots[1].color = lv_color_make(0, 255, 0); // Green
     dots[2].color = lv_color_make(0, 0, 255); // Blue
 
-    // Create background gradient object that uses proper LVGL drawing
-    gradient_obj = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(gradient_obj, SCR_W, SCR_H);
-    lv_obj_set_pos(gradient_obj, 0, 0);
-    lv_obj_set_style_border_width(gradient_obj, 0, 0);
-    lv_obj_set_style_radius(gradient_obj, 0, 0);
-    lv_obj_set_style_bg_opa(gradient_obj, LV_OPA_TRANSP, 0); // Transparent, we draw manually
+    // Initialize app state
+    current_state = STATE_LOADING;
+    state_start_time = lv_tick_get();
+    last_interaction_time = state_start_time;
 
-    // Add custom draw event for gradient rendering
-    lv_obj_add_event_cb(gradient_obj, gradient_draw_event_cb, LV_EVENT_DRAW_MAIN, NULL);
+    Serial.println("[DEBUG] App initialized - Starting in LOADING state");
+    Serial.printf("[DEBUG] Touch events: CLICKED=%d, PRESSED=%d, PRESS_LOST=%d\n", 
+                  LV_EVENT_CLICKED, LV_EVENT_PRESSED, LV_EVENT_PRESS_LOST);
 
-    // Create text labels with Cyrillic text using 96px Minecraft font
-    main_label = lv_label_create(lv_scr_act());
-    lv_label_set_text(main_label, "НЕЙРО");                       // Cyrillic text
-    lv_obj_set_style_text_font(main_label, &minecraft_ten_96, 0); // Custom Minecraft 96px Cyrillic font
-    lv_obj_set_style_text_color(main_label, lv_color_white(), 0);
-    lv_obj_align(main_label, LV_ALIGN_CENTER, 0, -80); // Adjusted position for larger font
+    // Create initial loading screen
+    create_loading_screen();
 
-    sub_label_1 = lv_label_create(lv_scr_act());
-    lv_label_set_text(sub_label_1, "БЛОК");                        // Cyrillic text
-    lv_obj_set_style_text_font(sub_label_1, &minecraft_ten_96, 0); // Custom Minecraft 96px Cyrillic font
-    lv_obj_set_style_text_color(sub_label_1, lv_color_white(), 0);
-    lv_obj_align_to(sub_label_1, main_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 0); // Adjusted spacing for larger font
-
-    // sub_label_2 = lv_label_create(lv_scr_act());
-    // lv_label_set_text_fmt(sub_label_2, "ESP32_Display_Panel(%d.%d.%d)",
-    //                       ESP_PANEL_VERSION_MAJOR, ESP_PANEL_VERSION_MINOR, ESP_PANEL_VERSION_PATCH);
-    // lv_obj_set_style_text_font(sub_label_2, &lv_font_montserrat_16, 0);
-    // lv_obj_set_style_text_color(sub_label_2, lv_color_white(), 0);
-    // lv_obj_align_to(sub_label_2, sub_label_1, LV_ALIGN_OUT_BOTTOM_MID, 0, 15);
-
-    // desc_label_1 = lv_label_create(lv_scr_act());
-    // lv_label_set_text_fmt(desc_label_1, "LVGL(%d.%d.%d) + RGB Anti-Tearing",
-    //                       LVGL_VERSION_MAJOR, LVGL_VERSION_MINOR, LVGL_VERSION_PATCH);
-    // lv_obj_set_style_text_font(desc_label_1, &lv_font_montserrat_16, 0);
-    // lv_obj_set_style_text_color(desc_label_1, lv_color_white(), 0);
-    // lv_obj_align_to(desc_label_1, sub_label_2, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
-
-    // desc_label_2 = lv_label_create(lv_scr_act());
-    // lv_label_set_text(desc_label_2, "RGB Double-Buffer + LVGL Full-Refresh Mode");
-    // lv_obj_set_style_text_font(desc_label_2, &lv_font_montserrat_16, 0);
-    // lv_obj_set_style_text_color(desc_label_2, lv_color_white(), 0);
-    // lv_obj_align(desc_label_2, LV_ALIGN_BOTTOM_MID, 0, -20);
-
-    // Start animation timer
+    // Start animation timer for state management and animation
     animation_timer = lv_timer_create(animation_timer_cb, FRAME_MS, NULL);
 
     lvgl_port_unlock();
