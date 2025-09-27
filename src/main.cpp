@@ -3,11 +3,13 @@
 #include <lvgl.h>
 #include "lvgl_v8_port.h"
 #include "console.h" // <-- Include your new console module
+#include "UARTProtocol.h"
 
 using namespace esp_panel::drivers;
 using namespace esp_panel::board;
 
 HardwareSerial slaveUART(2);
+UARTProtocol uartProtocol(&slaveUART);
 
 void init_display()
 {
@@ -34,6 +36,20 @@ void setup()
     console_set_status("Receiving UART messages...");
 }
 
+void printToConsole(const char *message)
+{
+    lvgl_port_lock(-1);
+    console_log(message);
+    lvgl_port_unlock();
+}
+
+void SetLedColor(int index, ProtocolColor color)
+{
+    String ledMsg = uartProtocol.createLEDSetPixelMessage(index, color);
+    printToConsole(ledMsg.c_str());
+    uartProtocol.sendMessage(ledMsg);
+}
+
 void loop()
 {
     // Process LVGL tasks
@@ -49,14 +65,22 @@ void loop()
         char c = slaveUART.read();
         if (c == '\n' || c == '\r')
         {
+            // End of line - process the received message
             if (uartBuffer.length() > 0)
             {
-                Serial.printf("UART RX: %s\n", uartBuffer.c_str());
+                printToConsole(uartBuffer.c_str());
 
-                // Log the received message to the display
-                lvgl_port_lock(-1);
-                console_log(uartBuffer.c_str());
-                lvgl_port_unlock();
+                ProtocolMessage msg = uartProtocol.parseMessage(uartBuffer);
+                if (msg.type == MSG_BUTTON_PRESSED)
+                {
+                    int btnIndex = msg.param1;
+                    SetLedColor(btnIndex, ProtocolColor::PROTO_COLOR_GREEN);
+                }
+                else if (msg.type == MSG_BUTTON_RELEASED)
+                {
+                    int btnIndex = msg.param1;
+                    SetLedColor(btnIndex, ProtocolColor::PROTO_COLOR_BLACK);
+                }
 
                 uartBuffer = ""; // Clear buffer
             }
