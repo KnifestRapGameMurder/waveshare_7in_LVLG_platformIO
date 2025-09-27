@@ -39,13 +39,13 @@ static const uint32_t IDLE_TIMEOUT = 10000;    // 10 seconds idle timeout
 static uint32_t last_interaction_time = 0;
 
 // UI об'єкти for loading screen
-static lv_obj_t *loading_screen;
+// static lv_obj_t *loading_screen;
 static lv_obj_t *gradient_obj;
 static lv_obj_t *main_label;
 static lv_obj_t *sub_label_1;
 
 // UI objects for main menu
-static lv_obj_t *menu_screen;
+// static lv_obj_t *menu_screen;
 static lv_obj_t *menu_title;
 static lv_obj_t *menu_buttons[4];
 static lv_obj_t *back_button;
@@ -77,6 +77,74 @@ static float orbit_scale_x = 2.0f; // X-axis scale multiplier (1.0 = normal, >1.
 static float orbit_scale_y = 1.5f; // Y-axis scale multiplier (1.0 = normal, >1.0 = taller, <1.0 = shorter)
 
 static ColorDot dots[3];
+
+// #define MAX_DIST_SQ (SOME_CONSTANT_MAX_DISTANCE_EG_SCREEN_SIZE * SOME_CONSTANT_MAX_DISTANCE_EG_SCREEN_SIZE)
+#define MAX_DIST 800.0f
+
+float channel_value(float dist)
+{
+    // Normalize distance to [0.0, 1.0] range based on MAX_DIST
+    float norm_dist = fminf(dist / MAX_DIST, 1.0f);
+    // Apply non-linear scaling (squared) for smoother gradient
+    return 1.0f - sqrtf(norm_dist);
+}
+
+#define SATURATION_FACTOR 2.0f
+
+static void saturate_color_floats(float *r, float *g, float *b)
+{
+    float r_f = *r;
+    float g_f = *g;
+    float b_f = *b;
+
+    // 1. Calculate the average luminance (gray component) in [0.0f, 1.0f]
+    float avg = (r_f + g_f + b_f) / 3.0f;
+
+    // 2. Saturate: C_new = avg + FACTOR * (C_old - avg)
+    // This increases the distance of each component from the gray average.
+    float r_new = fmaf(SATURATION_FACTOR, (r_f - avg), avg);
+    float g_new = fmaf(SATURATION_FACTOR, (g_f - avg), avg);
+    float b_new = fmaf(SATURATION_FACTOR, (b_f - avg), avg);
+
+    // 3. Clamp the resulting values to the required [0.0f, 1.0f] range
+    *r = fmaxf(0.0f, fminf(1.0f, r_new));
+    *g = fmaxf(0.0f, fminf(1.0f, g_new));
+    *b = fmaxf(0.0f, fminf(1.0f, b_new));
+}
+
+static lv_color_t distance_color_map(int px, int py)
+{
+    float x = (float)px, y = (float)py;
+
+    // Compute actual distances
+    float dx0 = x - dots[0].x, dy0 = y - dots[0].y;
+    float dist0 = sqrtf(dx0 * dx0 + dy0 * dy0);
+
+    float dx1 = x - dots[1].x, dy1 = y - dots[1].y;
+    float dist1 = sqrtf(dx1 * dx1 + dy1 * dy1);
+
+    float dx2 = x - dots[2].x, dy2 = y - dots[2].y;
+    float dist2 = sqrtf(dx2 * dx2 + dy2 * dy2);
+
+    // Apply the formula: C = 1 - (dist / MAX_DIST)
+    float r_f = channel_value(dist0); // Red based on point 1
+    float g_f = channel_value(dist1); // Green based on point 2
+    float b_f = channel_value(dist2); // Blue based on point 3
+
+    saturate_color_floats(&r_f, &g_f, &b_f);
+
+    // Convert float [0.0, 1.0] to uint8_t [0, 255]
+    // lv_color_make assumes 8-bit components for its *input*, though the
+    // internal representation may vary (e.g., 5, 6, 5 bits).
+    // We'll map to 0-255 then let lv_color_make handle the packing.
+    uint8_t r = (uint8_t)(r_f * 255.0f);
+    uint8_t g = (uint8_t)(g_f * 255.0f);
+    uint8_t b = (uint8_t)(b_f * 255.0f);
+
+    // If LVGL is configured for less than 8 bits per color,
+    // lv_color_make will automatically truncate/shift the 8-bit input.
+    return lv_color_make(r, g, b);
+}
 
 // Optimized color interpolation function
 static lv_color_t interpolate_color_idw_fast(int px, int py)
@@ -158,7 +226,8 @@ static void gradient_draw_event_cb(lv_event_t *e)
             int screen_y = coords.y1 + y + STEP / 2;
 
             // Get interpolated color for this position
-            lv_color_t color = interpolate_color_idw_fast(screen_x, screen_y);
+            // lv_color_t color = interpolate_color_idw_fast(screen_x, screen_y);
+            lv_color_t color = distance_color_map(screen_x, screen_y);
 
             // Draw filled rectangle at this position using LVGL draw functions
             lv_area_t fill_area;
