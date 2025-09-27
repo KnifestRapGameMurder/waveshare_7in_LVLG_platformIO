@@ -10,9 +10,11 @@
 #include "lvgl_v8_port.h"
 #include "lv_conf.h"
 #include <math.h>
+#include "uart_protocol.h"
 
-// Include the newly created loading screen header
+// Include external components
 #include "loading_screen.h"
+#include "app_screens.h" // New: Includes AppState, extern vars, and screen creation functions
 
 using namespace esp_panel::drivers;
 using namespace esp_panel::board;
@@ -21,89 +23,34 @@ using namespace esp_panel::board;
 static const uint32_t TARGET_FPS = 30;
 static const uint32_t FRAME_MS = 1000 / TARGET_FPS;
 
-// Application states
-enum AppState
-{
-    STATE_LOADING,   // Loading screen with animation
-    STATE_MAIN_MENU, // Main menu with 4 training buttons
-    STATE_TRAINER_1, // Training module 1
-    STATE_TRAINER_2, // Training module 2
-    STATE_TRAINER_3, // Training module 3
-    STATE_TRAINER_4  // Training module 4
-};
+// Application states and variables (No longer static, accessible via extern in app_screens.h)
+AppState current_state = STATE_LOADING;
+uint32_t state_start_time = 0;
+const uint32_t IDLE_TIMEOUT = 10000; // 10 seconds idle timeout
+uint32_t last_interaction_time = 0;
 
-static AppState current_state = STATE_LOADING;
-static uint32_t state_start_time = 0;
-// static const uint32_t LOADING_DURATION = 5000; // 5 seconds - Removed as touch is primary trigger
-static const uint32_t IDLE_TIMEOUT = 10000;
-// 10 seconds idle timeout
-static uint32_t last_interaction_time = 0;
+HardwareSerial uart_serial(2);
+UARTProtocol uart_protocol(&uart_serial);
 
-// Screen dimensions
-static int32_t SCR_W = 800, SCR_H = 480;
+// Screen dimensions (No longer static, accessible via extern in app_screens.h)
+int32_t SCR_W = 800,
+        SCR_H = 480;
 
-// UI objects for main menu (kept here as they belong to main menu logic)
-static lv_obj_t *menu_buttons[4];
-static lv_obj_t *back_button;
+// Note: UI objects (menu_buttons, back_button) are now extern and defined in app_screens.cpp.
 
-// Forward declarations
-static void create_main_menu();
-static void create_trainer_screen(int trainer_id);
-static void app_screen_touch_cb(lv_event_t *event);
+// Forward declaration for the timer callback (remains here as it controls the core loop)
 static void app_timer_cb(lv_timer_t *timer);
 
-// Button event handler for main menu
-static void menu_button_event_cb(lv_event_t *event)
+///
+static void lv_color_to_hex6(lv_color_t c, char out[7]) // out: "RRGGBB"
 {
-    lv_obj_t *btn = lv_event_get_target(event);
-    int trainer_id = (int)(intptr_t)lv_event_get_user_data(event);
-
-    Serial.printf("[МЕНЮ] Натиснуто кнопку %d\n", trainer_id + 1);
-
-    // Update interaction time to reset idle timeout
-    last_interaction_time = lv_tick_get();
-
-    // Switch to selected trainer
-    current_state = (AppState)(STATE_TRAINER_1 + trainer_id);
-    state_start_time = lv_tick_get();
-    create_trainer_screen(trainer_id);
+    uint32_t xrgb = lv_color_to32(c); // XRGB8888 (alpha=0xFF)
+    uint8_t r = (xrgb >> 16) & 0xFF;
+    uint8_t g = (xrgb >> 8) & 0xFF;
+    uint8_t b = (xrgb >> 0) & 0xFF;
+    snprintf(out, 7, "%02X%02X%02X", r, g, b);
 }
-
-// Back button event handler
-static void back_button_event_cb(lv_event_t *event)
-{
-    Serial.println("[НАЗАД] Натиснуто кнопку назад - повернення до головного меню");
-    last_interaction_time = lv_tick_get();
-    current_state = STATE_MAIN_MENU;
-    state_start_time = lv_tick_get();
-    create_main_menu();
-}
-
-/**
- * @brief Handles touch events across the application.
- * Currently only used to transition from STATE_LOADING to STATE_MAIN_MENU.
- */
-static void app_screen_touch_cb(lv_event_t *event)
-{
-    lv_event_code_t code = lv_event_get_code(event);
-
-    if (current_state == STATE_LOADING)
-    {
-        if (code == LV_EVENT_CLICKED || code == LV_EVENT_PRESSED)
-        {
-            Serial.println("[ДОТИК] Перехід від завантаження до головного меню");
-            current_state = STATE_MAIN_MENU;
-            state_start_time = lv_tick_get();
-            last_interaction_time = lv_tick_get();
-            create_main_menu();
-        }
-    }
-    else
-    {
-        // Only track interaction time for non-loading states
-        last_interaction_time = lv_tick_get();
-    }
-}
+///
 
 /**
  * @brief Main application timer for state management and continuous updates.
@@ -121,7 +68,7 @@ static void app_timer_cb(lv_timer_t *timer)
             Serial.println("[ТАЙМ-АУТ] Досягнуто тайм-аут бездіяльності - повернення до екрану завантаження");
             current_state = STATE_LOADING;
             state_start_time = now;
-            // Now use the encapsulated function
+            // Uses app_screen_touch_cb from app_screens.h
             loading_screen_create(app_screen_touch_cb);
             return;
         }
@@ -141,120 +88,16 @@ static void app_timer_cb(lv_timer_t *timer)
     last_time = now;
 }
 
-// Create main menu with 4 trainer buttons taking full screen
-static void create_main_menu()
-{
-    Serial.println("[НАЛАГОДЖЕННЯ] Створення головного меню...");
-    lv_obj_clean(lv_scr_act());
-
-    // Create 4 trainer buttons taking all screen space in 2x2 grid
-    const char *trainer_names[] = {
-        "ТРЕНАЖЕР 1",
-        "ТРЕНАЖЕР 2",
-        "ТРЕНАЖЕР 3",
-        "ТРЕНАЖЕР 4"};
-
-    // Different colors for each button
-    uint32_t button_colors[] = {
-        0x2E8B57, // Sea Green
-        0x4169E1, // Royal Blue
-        0xDC143C, // Crimson Red
-        0xFF8C00  // Dark Orange
-    };
-
-    // Each button takes half of screen width and height
-    int btn_width = SCR_W / 2;
-    int btn_height = SCR_H / 2;
-
-    for (int i = 0; i < 4; i++)
-    {
-        int row = i / 2;
-        int col = i % 2;
-
-        menu_buttons[i] = lv_btn_create(lv_scr_act());
-        lv_obj_set_size(menu_buttons[i], btn_width, btn_height);
-
-        // Position buttons in corners
-        int x_pos = col * btn_width;
-        int y_pos = row * btn_height;
-        lv_obj_set_pos(menu_buttons[i], x_pos, y_pos);
-
-        // Button styling with different colors
-        lv_obj_set_style_bg_color(menu_buttons[i], lv_color_hex(button_colors[i]), 0);
-        lv_obj_set_style_bg_color(menu_buttons[i], lv_color_hex(button_colors[i] + 0x333333), LV_STATE_PRESSED);
-        lv_obj_set_style_border_color(menu_buttons[i], lv_color_white(), 0);
-        lv_obj_set_style_border_width(menu_buttons[i], 3, 0);
-        lv_obj_set_style_radius(menu_buttons[i], 0, 0); // Square corners
-
-        // Button label with 48px font (assuming minecraft_ten_48 is externally defined)
-        lv_obj_t *label = lv_label_create(menu_buttons[i]);
-        lv_label_set_text(label, trainer_names[i]);
-        // Placeholder font style since the font definition wasn't in the provided code
-        lv_obj_set_style_text_font(label, &minecraft_ten_48, 0);
-        lv_obj_set_style_text_color(label, lv_color_white(), 0);
-        lv_obj_center(label);
-
-        // Add event handler
-        lv_obj_add_event_cb(menu_buttons[i], menu_button_event_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
-    }
-}
-
-// Create trainer screen
-static void create_trainer_screen(int trainer_id)
-{
-    Serial.printf("[НАЛАГОДЖЕННЯ] Створення екрану тренажера %d...\n", trainer_id + 1);
-    lv_obj_clean(lv_scr_act());
-
-    // Create dark background
-    lv_obj_t *bg = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
-    lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a1a), 0);
-    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
-
-    // Title
-    char title_text[32];
-    snprintf(title_text, sizeof(title_text), "ТРЕНАЖЕР %d", trainer_id + 1);
-    lv_obj_t *title = lv_label_create(lv_scr_act());
-    lv_label_set_text(title, title_text);
-    lv_obj_set_style_text_font(title, &minecraft_ten_48, 0);
-    lv_obj_set_style_text_color(title, lv_color_white(), 0);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
-
-    // Placeholder content
-    lv_obj_t *content = lv_label_create(lv_scr_act());
-    lv_label_set_text(content, "Тут буде вміст тренажера");
-    lv_obj_set_style_text_font(content, &minecraft_ten_48, 0);
-    lv_obj_set_style_text_color(content, lv_color_hex(0xcccccc), 0);
-    lv_obj_align(content, LV_ALIGN_CENTER, 0, 0);
-
-    // Back button
-    back_button = lv_btn_create(lv_scr_act());
-    lv_obj_set_size(back_button, 200, 80);
-    lv_obj_align(back_button, LV_ALIGN_BOTTOM_MID, 0, -30);
-
-    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x444444), 0);
-    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x666666), LV_STATE_PRESSED);
-    lv_obj_set_style_border_color(back_button, lv_color_white(), 0);
-    lv_obj_set_style_border_width(back_button, 2, 0);
-
-    lv_obj_t *back_label = lv_label_create(back_button);
-    lv_label_set_text(back_label, "НАЗАД");
-    lv_obj_set_style_text_font(back_label, &minecraft_ten_48, 0);
-    lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
-    lv_obj_center(back_label);
-
-    lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_CLICKED, NULL);
-}
-
 void setup()
 {
-    Serial.begin(115200);
+    Serial.begin(115200, SERIAL_8N1, 44, 43);
     Serial.println("=== ESP32-S3 RGB LCD Система Без Розривів ===");
 
     Serial.println("Ініціалізація плати з конфігурацією без розривів...");
     Board *board = new Board();
     board->init();
+
+    // uart_serial.begin(115200, SERIAL_8N1, 44, 43);
 
 // Configure anti-tearing RGB double-buffer mode (ESP-BSP style)
 #if LVGL_PORT_AVOID_TEARING_MODE

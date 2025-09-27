@@ -39,6 +39,8 @@ extern "C"
      */
     void loading_screen_update_animation(float dt);
 
+    static lv_color_t distance_color_map(int px, int py);
+
 #ifdef __cplusplus
 }
 #endif
