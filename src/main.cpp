@@ -20,13 +20,11 @@ static int buttonPressCount[16] = {0}; // Track button press counts
 // void handleSlaveMessage(const ProtocolMessage &message); // COMMENTED OUT
 void update_time_display();
 
-// SIMPLIFIED CONSOLE: Just show last 10 messages
-#define MAX_LOG_LINES 10
+// ULTRA SIMPLE: Just show ONE last message
 static lv_obj_t *log_screen;
-static lv_obj_t *log_labels[MAX_LOG_LINES];  // Array of labels for messages
+static lv_obj_t *last_message_label; // Single label for the last message
 static lv_obj_t *status_label;
 static lv_obj_t *time_label; // Time display in upper right corner
-static int current_log_line = 0; // Current line to write to
 
 // Initialize the board and display
 void init_display()
@@ -39,10 +37,10 @@ void init_display()
     lvgl_port_init(board->getLCD(), board->getTouch());
 }
 
-// Add log message to screen
+// ULTRA SIMPLE: Just update one message label
 void screen_log(const char *message)
 {
-    if (log_textarea == NULL)
+    if (last_message_label == NULL)
         return;
 
     // Get current time
@@ -55,43 +53,14 @@ void screen_log(const char *message)
     minutes %= 60;
     hours %= 24;
 
-    // Format log entry
-    char log_entry[256];
-    snprintf(log_entry, sizeof(log_entry), "[%02lu:%02lu:%02lu] %s\n",
+    // Format log entry with timestamp
+    static char log_entry[200];
+    snprintf(log_entry, sizeof(log_entry), "[%02lu:%02lu:%02lu] %s",
              hours, minutes, seconds, message);
 
-    // Get current text and append new log
-    const char *current_text = lv_textarea_get_text(log_textarea);
-    size_t current_len = strlen(current_text);
-    size_t new_entry_len = strlen(log_entry);
-    size_t total_len = current_len + new_entry_len + 1;
-
-    char *new_text = (char *)malloc(total_len);
-    if (new_text == NULL)
-        return;
-
-    strcpy(new_text, current_text);
-    strcat(new_text, log_entry);
-
-    // Limit text length to prevent memory issues
-    if (strlen(new_text) > 2000)
-    {
-        // Keep only last 1500 characters
-        char *trimmed = new_text + (strlen(new_text) - 1500);
-        lv_textarea_set_text(log_textarea, trimmed);
-    }
-    else
-    {
-        lv_textarea_set_text(log_textarea, new_text);
-    }
-
-    // Scroll to bottom
-    lv_textarea_set_cursor_pos(log_textarea, LV_TEXTAREA_CURSOR_LAST);
-
-    free(new_text);
-}
-
-// Update status display
+    // Simply update the one label - it will auto-resize for long text
+    lv_label_set_text(last_message_label, log_entry);
+} // Update status display
 void update_status(const char *status)
 {
     if (status_label != NULL)
@@ -127,7 +96,7 @@ void update_time_display()
     }
 }
 
-// Create the logging screen
+// ULTRA SIMPLE: Create screen with just ONE message display
 void create_log_screen()
 {
     // Create main screen
@@ -136,7 +105,7 @@ void create_log_screen()
 
     // Create status label at top
     status_label = lv_label_create(log_screen);
-    lv_label_set_text(status_label, "UART2 Logger - Waiting for slave...");
+    lv_label_set_text(status_label, "Last Message Only");
     lv_obj_set_style_text_color(status_label, lv_color_hex(0x00FF00), 0); // Green text
     lv_obj_align(status_label, LV_ALIGN_TOP_MID, 0, 10);
 
@@ -146,23 +115,15 @@ void create_log_screen()
     lv_obj_set_style_text_color(time_label, lv_color_hex(0xFFFF00), 0); // Yellow text
     lv_obj_align(time_label, LV_ALIGN_TOP_RIGHT, -10, 10);
 
-    // Create log textarea (terminal style)
-    log_textarea = lv_textarea_create(log_screen);
-    lv_obj_set_size(log_textarea, 780, 400); // Almost full screen
-    lv_obj_align(log_textarea, LV_ALIGN_CENTER, 0, 20);
+    // Create ONE message label that can handle long text
+    last_message_label = lv_label_create(log_screen);
+    lv_label_set_text(last_message_label, "System ready - waiting for messages...");
+    lv_obj_set_style_text_color(last_message_label, lv_color_hex(0x00FF00), 0); // Green text
 
-    // Terminal styling
-    lv_obj_set_style_bg_color(log_textarea, lv_color_hex(0x000000), 0);     // Black background
-    lv_obj_set_style_text_color(log_textarea, lv_color_hex(0x00FF00), 0);   // Green text
-    lv_obj_set_style_border_color(log_textarea, lv_color_hex(0x00FF00), 0); // Green border
-    lv_obj_set_style_border_width(log_textarea, 2, 0);
-    lv_obj_set_style_pad_all(log_textarea, 10, 0);
-
-    // Make it read-only
-    lv_obj_clear_flag(log_textarea, LV_OBJ_FLAG_CLICKABLE);
-
-    // Set initial text
-    lv_textarea_set_text(log_textarea, "=== UART2 ON-SCREEN LOGGER ===\n");
+    // Set size and enable text wrapping for long messages
+    lv_obj_set_size(last_message_label, 760, LV_SIZE_CONTENT);      // Width fixed, height auto
+    lv_label_set_long_mode(last_message_label, LV_LABEL_LONG_WRAP); // Wrap long text
+    lv_obj_align(last_message_label, LV_ALIGN_CENTER, 0, 0);        // Center position
 
     // Load the screen
     lv_scr_load(log_screen);
@@ -226,22 +187,28 @@ void loop()
     // Process LVGL tasks (this can sometimes hang)
     lv_timer_handler();
 
-    // STEP 1: Simple UART receive check (just log raw data)
-    if (slaveUART.available())
+    // STEP 1: INSTANT UART receive - character by character
+    static String uartBuffer = "";
+    while (slaveUART.available())
     {
-        String receivedData = slaveUART.readString();
-        receivedData.trim(); // Remove whitespace
-        if (receivedData.length() > 0)
+        char c = slaveUART.read(); // Read immediately, no buffering delay
+        if (c == '\n' || c == '\r')
         {
-            Serial.printf("UART RX: %s\n", receivedData.c_str());
-
-            // Log to screen occasionally (not every message to avoid spam)
-            static unsigned long lastUartLog = 0;
-            if (millis() - lastUartLog > 2000) // Every 2 seconds max
+            if (uartBuffer.length() > 0)
             {
-                lastUartLog = millis();
-                screen_log(("RX: " + receivedData).c_str());
+                Serial.printf("UART RX: %s\n", uartBuffer.c_str());
+
+                // Update display immediately
+                lvgl_port_lock(-1);
+                screen_log(("RX: " + uartBuffer).c_str());
+                lvgl_port_unlock();
+
+                uartBuffer = ""; // Clear buffer
             }
+        }
+        else if (c >= 32 && c <= 126) // Printable characters only
+        {
+            uartBuffer += c;
         }
     }
 
