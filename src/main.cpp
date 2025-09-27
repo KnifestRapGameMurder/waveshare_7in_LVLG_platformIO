@@ -83,13 +83,14 @@ static ColorDot dots[3];
 
 float channel_value(float dist)
 {
+    float max_value = 0.8f;
     // Normalize distance to [0.0, 1.0] range based on MAX_DIST
-    float norm_dist = fminf(dist / MAX_DIST, 1.0f);
+    float norm_dist = fminf(dist / MAX_DIST, max_value);
     // Apply non-linear scaling (squared) for smoother gradient
-    return 1.0f - sqrtf(norm_dist);
+    return max_value - (norm_dist);
 }
 
-#define SATURATION_FACTOR 2.0f
+#define SATURATION_FACTOR 3.0f
 
 static void saturate_color_floats(float *r, float *g, float *b)
 {
