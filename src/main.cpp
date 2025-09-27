@@ -2,25 +2,31 @@
 #include <esp_display_panel.hpp>
 #include <lvgl.h>
 #include "lvgl_v8_port.h"
-#include "UARTProtocol.h"
+// #include "UARTProtocol.h" // COMMENTED OUT FOR TESTING
 
 using namespace esp_panel::drivers;
 using namespace esp_panel::board;
 
-// UART2 for slave communication with proper protocol
+// STEP 1: Add back basic UART2 (without protocol yet)
 HardwareSerial slaveUART(2);
-UARTProtocol protocol(&slaveUART);
 
-// Test variables
+// COMMENTED OUT: UARTProtocol and test variables for now
+/*
+UARTProtocol protocol(&slaveUART);
 static int buttonPressCount[16] = {0}; // Track button press counts
+*/
 
 // Forward declarations
-void handleSlaveMessage(const ProtocolMessage &message);
+// void handleSlaveMessage(const ProtocolMessage &message); // COMMENTED OUT
+void update_time_display();
 
-// LVGL objects for on-screen logging
+// SIMPLIFIED CONSOLE: Just show last 10 messages
+#define MAX_LOG_LINES 10
 static lv_obj_t *log_screen;
-static lv_obj_t *log_textarea;
+static lv_obj_t *log_labels[MAX_LOG_LINES];  // Array of labels for messages
 static lv_obj_t *status_label;
+static lv_obj_t *time_label; // Time display in upper right corner
+static int current_log_line = 0; // Current line to write to
 
 // Initialize the board and display
 void init_display()
@@ -94,6 +100,33 @@ void update_status(const char *status)
     }
 }
 
+// Update time display - shows loop is alive
+void update_time_display()
+{
+    if (time_label != NULL)
+    {
+        unsigned long now = millis();
+        unsigned long seconds = (now / 1000) % 60;
+        unsigned long minutes = (now / 60000) % 60;
+        unsigned long hours = (now / 3600000) % 24;
+
+        char time_str[16];
+        snprintf(time_str, sizeof(time_str), "%02lu:%02lu:%02lu", hours, minutes, seconds);
+        lv_label_set_text(time_label, time_str);
+
+        // Debug output to serial to confirm function is called
+        static int call_count = 0;
+        if (++call_count % 10 == 0) // Print every 10 seconds
+        {
+            Serial.printf("Time update #%d: %s\n", call_count, time_str);
+        }
+    }
+    else
+    {
+        Serial.println("ERROR: time_label is NULL!");
+    }
+}
+
 // Create the logging screen
 void create_log_screen()
 {
@@ -106,6 +139,12 @@ void create_log_screen()
     lv_label_set_text(status_label, "UART2 Logger - Waiting for slave...");
     lv_obj_set_style_text_color(status_label, lv_color_hex(0x00FF00), 0); // Green text
     lv_obj_align(status_label, LV_ALIGN_TOP_MID, 0, 10);
+
+    // Create time display in upper right corner
+    time_label = lv_label_create(log_screen);
+    lv_label_set_text(time_label, "00:00:00");
+    lv_obj_set_style_text_color(time_label, lv_color_hex(0xFFFF00), 0); // Yellow text
+    lv_obj_align(time_label, LV_ALIGN_TOP_RIGHT, -10, 10);
 
     // Create log textarea (terminal style)
     log_textarea = lv_textarea_create(log_screen);
@@ -134,12 +173,11 @@ void setup()
     // Initialize display first
     init_display();
 
-    // Create logging screen
-    lvgl_port_lock(-1);
+    // Create logging screen - SIMPLIFIED
     create_log_screen();
-    lvgl_port_unlock();
 
-    // Initialize UART2 for slave communication
+    // COMMENTED OUT: Initialize UART2 for slave communication
+    /*
     slaveUART.begin(115200, SERIAL_8N1, 44, 43); // RX=44, TX=43
 
     // Log initialization
@@ -155,42 +193,105 @@ void setup()
     protocol.sendMessage(protocol.createHandshakeMessage("MASTER_BUTTON_LED_TEST"));
 
     update_status("Simple Test - Waiting for button events...");
+    */
+
+    // STEP 1: Add back basic UART initialization
+    Serial.println("=== STEP 1: BASIC UART TEST ===");
+    Serial.println("System initialized - testing UART + time display");
+
+    // Initialize UART2 for basic communication
+    slaveUART.begin(115200, SERIAL_8N1, 44, 43); // RX=44, TX=43
+
+    // Log initialization
+    screen_log("STEP 1: Basic UART + Time Test");
+    screen_log("UART2 initialized on pins RX=44, TX=43");
+    update_status("Step 1 - Basic UART + Time Display");
 }
 
 void loop()
 {
-    // Process LVGL tasks
-    lv_timer_handler();
+    static unsigned long lastLoopTime = 0;
+    static unsigned long loopCounter = 0;
     unsigned long now = millis();
 
-    // Handle incoming protocol messages from slave
-    ProtocolMessage message;
-    if (protocol.receiveMessage(message))
+    // COMMENTED OUT: Watchdog: detect if loop is stuck
+    /*
+    if (now - lastLoopTime > 5000) // If more than 5 seconds since last loop
     {
-        handleSlaveMessage(message);
+        lastLoopTime = now;
+        loopCounter++;
+    }
+    */
+
+    // Process LVGL tasks (this can sometimes hang)
+    lv_timer_handler();
+
+    // STEP 1: Simple UART receive check (just log raw data)
+    if (slaveUART.available())
+    {
+        String receivedData = slaveUART.readString();
+        receivedData.trim(); // Remove whitespace
+        if (receivedData.length() > 0)
+        {
+            Serial.printf("UART RX: %s\n", receivedData.c_str());
+
+            // Log to screen occasionally (not every message to avoid spam)
+            static unsigned long lastUartLog = 0;
+            if (millis() - lastUartLog > 2000) // Every 2 seconds max
+            {
+                lastUartLog = millis();
+                screen_log(("RX: " + receivedData).c_str());
+            }
+        }
     }
 
-    // Simple status update every 15 seconds
-    static unsigned long lastStatus = 0;
-    if (now - lastStatus > 15000)
+    // Update time display every second - SIMPLIFIED VERSION
+    static unsigned long lastTimeUpdate = 0;
+    if (now - lastTimeUpdate > 1000)
     {
-        lastStatus = now;
+        lastTimeUpdate = now;
 
-        lvgl_port_lock(-1);
-        char status_msg[100];
-        snprintf(status_msg, sizeof(status_msg), "STATUS: Uptime %lu sec", now / 1000);
-        screen_log(status_msg);
-        screen_log("Waiting for button events from slave...");
-        lvgl_port_unlock();
+        // Debug: confirm loop is running
+        static int debug_counter = 0;
+        debug_counter++;
+        Serial.printf("Loop alive: %d seconds\n", debug_counter);
+
+        // Try direct time update without locks first
+        update_time_display();
     }
 
-    delay(10);
+    // COMMENTED OUT: Send periodic status requests
+    /*
+    static unsigned long lastStatusRequest = 0;
+    if (now - lastStatusRequest > 15000) // Every 15 seconds
+    {
+        lastStatusRequest = now;
+
+        // Safe logging with timeout
+        if (lvgl_port_lock(100) == 0) // 100ms timeout
+        {
+            char status_msg[150];
+            snprintf(status_msg, sizeof(status_msg),
+                     "STATUS: Uptime %lu sec, Loops: %lu", now / 1000, loopCounter);
+            screen_log(status_msg);
+            screen_log("Waiting for button events from slave...");
+            lvgl_port_unlock();
+        }
+    }
+    */
+
+    delay(50); // Slightly longer delay to reduce CPU load
 }
 
-// Handle protocol messages from slave
+// COMMENTED OUT: Handle protocol messages from slave
+/*
 void handleSlaveMessage(const ProtocolMessage &message)
 {
-    lvgl_port_lock(-1);
+    // Use timeout to prevent infinite lock
+    if (lvgl_port_lock(200) != 0) // 200ms timeout
+    {
+        return; // Skip this message if can't get lock
+    }
 
     switch (message.type)
     {
@@ -280,3 +381,4 @@ void handleSlaveMessage(const ProtocolMessage &message)
 
     lvgl_port_unlock();
 }
+*/
