@@ -5,7 +5,7 @@
 extern UARTProtocol uart_protocol;
 
 // Cache for button states (16 buttons)
-static uint16_t button_state_cache = 0;
+uint16_t button_state_cache = 0;
 
 // --- Button Abstraction ---
 uint16_t expanderRead()
@@ -42,16 +42,19 @@ void strip_Show()
 
 void strip_ClearTo(RgbColor color)
 {
-    // If the color is black, just clear the strip.
     if (color.r == 0 && color.g == 0 && color.b == 0)
     {
         uart_protocol.sendMessage(uart_protocol.createLEDClearMessage());
     }
     else
     {
-        // Your protocol does not have a "set all to hex color" command.
-        // For now, this function will do nothing for non-black colors.
-        // The trainer logic will need to set each pixel individually.
+        // Set all LEDs to the specified color by setting each pixel individually
+        char hexColor[8];
+        snprintf(hexColor, sizeof(hexColor), "%02X%02X%02X", color.r, color.g, color.b);
+        for (int i = 0; i < NUM_LEDS; i++)
+        {
+            uart_protocol.sendMessage(uart_protocol.createLEDSetPixelMessage(i, String(hexColor)));
+        }
     }
 }
 

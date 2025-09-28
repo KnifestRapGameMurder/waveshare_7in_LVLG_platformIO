@@ -6,6 +6,8 @@
 // Define the number of LEDs
 #define NUM_LEDS 16
 
+extern uint16_t button_state_cache;
+
 // Define a simple RgbColor struct for convenience
 struct RgbColor
 {

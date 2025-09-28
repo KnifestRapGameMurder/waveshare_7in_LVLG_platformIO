@@ -20,6 +20,8 @@
 using namespace esp_panel::drivers;
 using namespace esp_panel::board;
 
+extern uint16_t button_state_cache;
+
 // ---------- ANTI-TEARING CONFIGURATION (Based on ESP-BSP proven solutions) ----------
 static const uint32_t TARGET_FPS = 30;
 static const uint32_t FRAME_MS = 1000 / TARGET_FPS;
@@ -108,6 +110,28 @@ static void app_timer_cb(lv_timer_t *timer)
             break;
         default:
             // Menu states don't need continuous updates
+            break;
+        }
+    }
+
+    // 4. Handle UART communication with slave (LEDs and buttons)
+    ProtocolMessage msg;
+    if (uart_protocol.receiveMessage(msg))
+    {
+        switch (msg.type)
+        {
+        case MSG_BUTTON_PRESSED:
+            // Set the bit for the pressed button (param1 = button index)
+            button_state_cache |= (1 << msg.param1);
+            Serial.printf("[UART] Button %d pressed\n", msg.param1);
+            break;
+        case MSG_BUTTON_RELEASED:
+            // Clear the bit for the released button (param1 = button index)
+            button_state_cache &= ~(1 << msg.param1);
+            Serial.printf("[UART] Button %d released\n", msg.param1);
+            break;
+        // Add other message types if needed (e.g., acknowledgments)
+        default:
             break;
         }
     }
