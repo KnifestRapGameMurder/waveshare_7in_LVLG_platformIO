@@ -117,7 +117,7 @@ static void app_timer_cb(lv_timer_t *timer)
 
 void setup()
 {
-    Serial.begin(115200, SERIAL_8N1, 44, 43);
+    Serial.begin(115200);
     Serial.println("=== ESP32-S3 RGB LCD Система Без Розривів ===");
 
     Serial.println("Ініціалізація плати з конфігурацією без розривів...");
