@@ -25,6 +25,8 @@ extern void set_survival_time_state(SurvivalTimeState);
 lv_obj_t *menu_buttons[4] = {NULL};
 lv_obj_t *back_button = NULL;
 
+lv_obj_t *debug_label = NULL;
+
 // Event handlers
 static void accuracy_difficulty_event_cb(lv_event_t *e)
 {
@@ -226,6 +228,9 @@ void create_main_menu()
         // Add event handler
         lv_obj_add_event_cb(menu_buttons[i], menu_button_event_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
     }
+
+    // At the end of each create_ function, replace the repeated block with:
+    create_debug_label();
 }
 
 // Create trainer screen
@@ -353,6 +358,9 @@ void create_accuracy_difficulty_submenu()
     lv_obj_center(back_label);
 
     lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_CLICKED, NULL);
+
+    // At the end of each create_ function, replace the repeated block with:
+    create_debug_label();
 }
 
 // Create reaction submenu
@@ -418,6 +426,9 @@ void create_reaction_submenu()
     lv_obj_center(back_label);
 
     lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_CLICKED, NULL);
+
+    // At the end of each create_ function, replace the repeated block with:
+    create_debug_label();
 }
 
 // Create coordination submenu
@@ -483,6 +494,9 @@ void create_coordination_submenu()
     lv_obj_center(back_label);
 
     lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_CLICKED, NULL);
+
+    // At the end of each create_ function, replace the repeated block with:
+    create_debug_label();
 }
 
 // Create reaction survival submenu
@@ -562,4 +576,27 @@ void create_reaction_survival_submenu()
     lv_obj_center(back_label);
 
     lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_CLICKED, NULL);
+
+    // At the end of each create_ function, replace the repeated block with:
+    create_debug_label();
+}
+
+// Function to create/update the debug label for button states
+void create_debug_label()
+{
+    return;
+
+    // Create/update debug label for button states
+    if (debug_label)
+        lv_obj_del(debug_label);
+
+    debug_label = lv_label_create(lv_scr_act());
+    lv_label_set_text(debug_label, "0000000000000000");
+    lv_obj_align(debug_label, LV_ALIGN_TOP_LEFT, 10, 10); // Top-left with small offset
+    lv_obj_set_style_text_color(debug_label, lv_color_white(), 0);
+    lv_obj_set_style_text_font(debug_label, Font3, 0); // Use small font
+
+    // Remove background and border to prevent glitching
+    lv_obj_set_style_bg_opa(debug_label, LV_OPA_0, 0); // Fully transparent background
+    lv_obj_set_style_border_width(debug_label, 0, 0);  // No border
 }

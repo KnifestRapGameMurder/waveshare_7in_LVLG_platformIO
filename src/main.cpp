@@ -34,7 +34,7 @@ uint32_t last_interaction_time = 0;
 Preferences preferences;
 
 // ========== UART SWITCH ===========
-#define UART_USED 0
+#define UART_USED 1
 // ========== UART SWITCH ===========
 
 HardwareSerial uart_serial(2);
@@ -75,15 +75,17 @@ static void app_timer_cb(lv_timer_t *timer)
     // 1. Check for idle timeout (return to loading screen if no interaction)
     if (current_state == STATE_MAIN_MENU)
     {
-        Serial.printf("[IDLE] now=%u, last=%u, diff=%u\n", now, last_interaction_time, now - last_interaction_time);
+        // Serial.printf("[IDLE] now=%u, last=%u, diff=%u\n", now, last_interaction_time, now - last_interaction_time);
 
         if ((now - last_interaction_time) >= IDLE_TIMEOUT)
         {
             Serial.println("[ТАЙМ-АУТ] Досягнуто тайм-аут бездіяльності - повернення до екрану завантаження");
+            lvgl_port_lock(-1); // Lock for UI changes
             current_state = STATE_LOADING;
             state_start_time = now;
             // Uses app_screen_touch_cb from app_screens.h
             loading_screen_create(app_screen_touch_cb);
+            lvgl_port_unlock(); // Unlock
             return;
         }
     }
@@ -96,11 +98,14 @@ static void app_timer_cb(lv_timer_t *timer)
         if (last_time == 0 || dt < 0.001f || dt > 0.1f)
             dt = 0.033f; // 30 FPS fallback
 
+        lvgl_port_lock(-1); // Lock for UI changes
         loading_screen_update_animation(dt);
+        lvgl_port_unlock(); // Unlock
     }
     // 3. Run trainer logic based on current state
     else
     {
+        lvgl_port_lock(-1); // Lock for UI changes in trainers
         switch (current_state)
         {
         case STATE_ACCURACY_TRAINER:
@@ -122,6 +127,7 @@ static void app_timer_cb(lv_timer_t *timer)
             // Menu states don't need continuous updates
             break;
         }
+        lvgl_port_unlock(); // Unlock
     }
 
     // 4. Handle UART communication with slave (LEDs and buttons)
@@ -145,6 +151,20 @@ static void app_timer_cb(lv_timer_t *timer)
             break;
         }
     }
+
+    // Update debug label with current button states
+    lvgl_port_lock(-1); // Lock for UI changes
+    if (debug_label)
+    {
+        char buf[17];
+        for (int i = 0; i < 16; i++)
+        {
+            buf[i] = (button_state_cache & (1 << i)) ? '1' : '0';
+        }
+        buf[16] = '\0';
+        lv_label_set_text(debug_label, buf);
+    }
+    lvgl_port_unlock(); // Unlock
 
     last_time = now;
 }

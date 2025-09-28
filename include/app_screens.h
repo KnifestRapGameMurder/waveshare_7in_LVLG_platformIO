@@ -14,6 +14,9 @@
 #include "coordination_trainer.h"
 #include "fonts.h"
 
+// Debug label for button states
+extern lv_obj_t *debug_label;
+
 // Application states (Defined here as they control the UI flow)
 enum AppState
 {
@@ -63,5 +66,8 @@ void create_trainer_screen(int trainer_id);
  * This function handles the transition from STATE_LOADING to STATE_MAIN_MENU.
  */
 void app_screen_touch_cb(lv_event_t *event);
+
+// Function to create/update debug label
+void create_debug_label();
 
 #endif // APP_SCREENS_H

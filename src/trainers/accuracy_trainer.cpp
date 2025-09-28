@@ -11,7 +11,7 @@ const int ACCURACY_TIMEOUT = 5000;         // 5 seconds to hit the target
 const int MAX_ACCURACY_MISSES = 3;         // Max misses before game over
 const int TOTAL_ACCURACY_ROUNDS = 10;      // Rounds per game
 const int FEEDBACK_DURATION = 260;         // ms for success/fail feedback effect
-const int GAME_OVER_MSG_DURATION = 2000;   // ms to show "Game Over"
+const int GAME_OVER_MSG_DURATION = 1000;   // ms to show "Game Over"
 const int RESULTS_DISPLAY_DURATION = 5000; // ms to show results
 
 // Speed constants
@@ -44,6 +44,7 @@ static lv_obj_t *info_label = NULL;
 static lv_obj_t *results_label = NULL;
 static lv_obj_t *play_again_btn = NULL;
 static lv_obj_t *exit_btn = NULL;
+static lv_obj_t *back_btn = NULL;
 
 // === Forward Declarations ===
 static void update_hud();
@@ -86,7 +87,7 @@ void create_accuracy_trainer_screen()
     lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
     // Create back button
-    lv_obj_t *back_btn = lv_btn_create(accuracy_screen);
+    back_btn = lv_btn_create(accuracy_screen);
     lv_obj_set_size(back_btn, 200, 80);
     lv_obj_align(back_btn, LV_ALIGN_BOTTOM_MID, 0, -30);
     lv_obj_set_style_bg_color(back_btn, lv_color_hex(0x444444), 0);
@@ -436,8 +437,10 @@ void run_accuracy_trainer()
     }
 
     case AT_STATE_GAME_OVER:
+        Serial.printf("AT_STATE_GAME_OVER: elapsed %lu ms\n", lv_tick_get() - state_timer);
         if (lv_tick_get() - state_timer > GAME_OVER_MSG_DURATION)
         {
+            Serial.println("Transitioning to AT_STATE_SHOW_RESULTS");
             set_accuracy_trainer_state(AT_STATE_SHOW_RESULTS);
         }
         break;
@@ -504,6 +507,7 @@ static void create_game_over_menu()
     lv_obj_center(exit_label);
 
     lv_obj_add_event_cb(exit_btn, game_over_menu_event_handler, LV_EVENT_CLICKED, (void *)1);
+    lv_obj_move_foreground(back_btn);
 }
 
 static void game_over_menu_event_handler(lv_event_t *e)
@@ -527,7 +531,17 @@ static void game_over_menu_event_handler(lv_event_t *e)
 
 static void back_to_menu_event_handler(lv_event_t *e)
 {
-    Serial.println("Acc: Back to menu");
+    Serial.println("Back button pressed in accuracy trainer");
+
+    if (current_trainer_state == AT_STATE_GAME_OVER || current_trainer_state == AT_STATE_SHOW_RESULTS)
+    {
+        // Skip to menu directly
+        current_state = STATE_MAIN_MENU;
+        set_accuracy_trainer_state(AT_STATE_IDLE);
+        create_main_menu();
+        return;
+    }
+
     last_interaction_time = lv_tick_get(); // Add this
     current_state = STATE_MAIN_MENU;
     set_accuracy_trainer_state(AT_STATE_IDLE);
