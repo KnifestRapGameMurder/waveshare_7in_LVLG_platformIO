@@ -12,10 +12,7 @@
 #include "reaction_trainer.h"
 #include "memory_trainer.h"
 #include "coordination_trainer.h"
-
-// Forward declaration for missing font definition in this scope
-// NOTE: This must be defined externally for compilation to succeed.
-extern const lv_font_t minecraft_ten_48;
+#include "fonts.h"
 
 // Application states (Defined here as they control the UI flow)
 enum AppState

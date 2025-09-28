@@ -9,6 +9,7 @@
 
 #include <lvgl.h>
 #include <stdint.h>
+#include "fonts.h"
 
 #ifdef __cplusplus
 extern "C"

@@ -396,7 +396,12 @@
 /*Optionally declare custom fonts here.
  *You can use these fonts as default font too and they will be available globally.
  *E.g. #define LV_FONT_CUSTOM_DECLARE   LV_FONT_DECLARE(my_font_1) LV_FONT_DECLARE(my_font_2)*/
-#define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(minecraft_ten_96) LV_FONT_DECLARE(minecraft_ten_48)
+#define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lilita_one_regular_96) \
+                               LV_FONT_DECLARE(lilita_one_regular_48)  \
+                               LV_FONT_DECLARE(lilita_one_regular_24)  
+                            //    LV_FONT_DECLARE(lilita_one_regular_16)  \
+                            //    LV_FONT_DECLARE(lilita_one_regular_12)  \
+                            //    LV_FONT_DECLARE(lilita_one_regular_8)
 
 /*Always set a default font*/
 #define LV_FONT_DEFAULT &lv_font_montserrat_14

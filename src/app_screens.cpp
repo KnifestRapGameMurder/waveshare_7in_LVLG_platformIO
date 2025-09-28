@@ -219,7 +219,7 @@ void create_main_menu()
         lv_obj_t *label = lv_label_create(menu_buttons[i]);
         lv_label_set_text(label, trainer_names[i]);
         // NOTE: Commenting out font style since 'minecraft_ten_48' is not defined here.
-        lv_obj_set_style_text_font(label, &minecraft_ten_48, 0);
+        lv_obj_set_style_text_font(label, Font2, 0);
         lv_obj_set_style_text_color(label, lv_color_white(), 0);
         lv_obj_center(label);
 
@@ -246,14 +246,14 @@ void create_trainer_screen(int trainer_id)
     snprintf(title_text, sizeof(title_text), "ТРЕНАЖЕР %d", trainer_id + 1);
     lv_obj_t *title = lv_label_create(lv_scr_act());
     lv_label_set_text(title, title_text);
-    lv_obj_set_style_text_font(title, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(title, Font2, 0);
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
 
     // Placeholder content - THIS IS WHERE YOU WILL CALL THE UNIQUE TRAINER FUNCTION LATER
     lv_obj_t *content = lv_label_create(lv_scr_act());
     lv_label_set_text(content, "Тут буде вміст тренажера (Trainer Specific Logic Goes Here)");
-    lv_obj_set_style_text_font(content, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(content, Font2, 0);
     lv_obj_set_style_text_color(content, lv_color_hex(0xcccccc), 0);
     lv_obj_align(content, LV_ALIGN_CENTER, 0, 0);
 
@@ -269,7 +269,7 @@ void create_trainer_screen(int trainer_id)
 
     lv_obj_t *back_label = lv_label_create(back_button);
     lv_label_set_text(back_label, "НАЗАД");
-    lv_obj_set_style_text_font(back_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(back_label, Font2, 0);
     lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
     lv_obj_center(back_label);
 
@@ -291,7 +291,7 @@ void create_accuracy_difficulty_submenu()
     // Title
     lv_obj_t *title = lv_label_create(lv_scr_act());
     lv_label_set_text(title, "ВИБЕРІТЬ СКЛАДНІСТЬ");
-    lv_obj_set_style_text_font(title, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(title, Font2, 0);
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
 
@@ -304,7 +304,7 @@ void create_accuracy_difficulty_submenu()
 
     lv_obj_t *easy_label = lv_label_create(easy_btn);
     lv_label_set_text(easy_label, "ЛЕГКО");
-    lv_obj_set_style_text_font(easy_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(easy_label, Font2, 0);
     lv_obj_center(easy_label);
 
     lv_obj_add_event_cb(easy_btn, accuracy_difficulty_event_cb, LV_EVENT_CLICKED, (void *)0);
@@ -318,7 +318,7 @@ void create_accuracy_difficulty_submenu()
 
     lv_obj_t *medium_label = lv_label_create(medium_btn);
     lv_label_set_text(medium_label, "СЕРЕДНЄ");
-    lv_obj_set_style_text_font(medium_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(medium_label, Font2, 0);
     lv_obj_center(medium_label);
 
     lv_obj_add_event_cb(medium_btn, accuracy_difficulty_event_cb, LV_EVENT_CLICKED, (void *)1);
@@ -332,7 +332,7 @@ void create_accuracy_difficulty_submenu()
 
     lv_obj_t *hard_label = lv_label_create(hard_btn);
     lv_label_set_text(hard_label, "ВАЖКО");
-    lv_obj_set_style_text_font(hard_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(hard_label, Font2, 0);
     lv_obj_center(hard_label);
 
     lv_obj_add_event_cb(hard_btn, accuracy_difficulty_event_cb, LV_EVENT_CLICKED, (void *)2);
@@ -348,7 +348,7 @@ void create_accuracy_difficulty_submenu()
 
     lv_obj_t *back_label = lv_label_create(back_button);
     lv_label_set_text(back_label, "НАЗАД");
-    lv_obj_set_style_text_font(back_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(back_label, Font2, 0);
     lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
     lv_obj_center(back_label);
 
@@ -370,7 +370,7 @@ void create_reaction_submenu()
     // Title
     lv_obj_t *title = lv_label_create(lv_scr_act());
     lv_label_set_text(title, "ВИБЕРІТЬ РЕЖИМ");
-    lv_obj_set_style_text_font(title, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(title, Font2, 0);
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
 
@@ -383,7 +383,7 @@ void create_reaction_submenu()
 
     lv_obj_t *trial_label = lv_label_create(trial_btn);
     lv_label_set_text(trial_label, "ЧАС РЕАКЦІЇ");
-    lv_obj_set_style_text_font(trial_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(trial_label, Font2, 0);
     lv_obj_center(trial_label);
 
     lv_obj_add_event_cb(trial_btn, reaction_mode_event_cb, LV_EVENT_CLICKED, (void *)0);
@@ -397,7 +397,7 @@ void create_reaction_submenu()
 
     lv_obj_t *survival_label = lv_label_create(survival_btn);
     lv_label_set_text(survival_label, "ВИЖИВАННЯ");
-    lv_obj_set_style_text_font(survival_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(survival_label, Font2, 0);
     lv_obj_center(survival_label);
 
     lv_obj_add_event_cb(survival_btn, reaction_mode_event_cb, LV_EVENT_CLICKED, (void *)1);
@@ -413,7 +413,7 @@ void create_reaction_submenu()
 
     lv_obj_t *back_label = lv_label_create(back_button);
     lv_label_set_text(back_label, "НАЗАД");
-    lv_obj_set_style_text_font(back_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(back_label, Font2, 0);
     lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
     lv_obj_center(back_label);
 
@@ -435,7 +435,7 @@ void create_coordination_submenu()
     // Title
     lv_obj_t *title = lv_label_create(lv_scr_act());
     lv_label_set_text(title, "ВИБЕРІТЬ СКЛАДНІСТЬ");
-    lv_obj_set_style_text_font(title, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(title, Font2, 0);
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
 
@@ -448,7 +448,7 @@ void create_coordination_submenu()
 
     lv_obj_t *easy_label = lv_label_create(easy_btn);
     lv_label_set_text(easy_label, "ЛЕГКО");
-    lv_obj_set_style_text_font(easy_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(easy_label, Font2, 0);
     lv_obj_center(easy_label);
 
     lv_obj_add_event_cb(easy_btn, coordination_difficulty_event_cb, LV_EVENT_CLICKED, (void *)0);
@@ -462,7 +462,7 @@ void create_coordination_submenu()
 
     lv_obj_t *hard_label = lv_label_create(hard_btn);
     lv_label_set_text(hard_label, "ВАЖКО");
-    lv_obj_set_style_text_font(hard_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(hard_label, Font2, 0);
     lv_obj_center(hard_label);
 
     lv_obj_add_event_cb(hard_btn, coordination_difficulty_event_cb, LV_EVENT_CLICKED, (void *)1);
@@ -478,7 +478,7 @@ void create_coordination_submenu()
 
     lv_obj_t *back_label = lv_label_create(back_button);
     lv_label_set_text(back_label, "НАЗАД");
-    lv_obj_set_style_text_font(back_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(back_label, Font2, 0);
     lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
     lv_obj_center(back_label);
 
@@ -500,7 +500,7 @@ void create_reaction_survival_submenu()
     // Title
     lv_obj_t *title = lv_label_create(lv_scr_act());
     lv_label_set_text(title, "ВИБЕРІТЬ ТРИВАЛІСТЬ");
-    lv_obj_set_style_text_font(title, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(title, Font2, 0);
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
 
@@ -513,7 +513,7 @@ void create_reaction_survival_submenu()
 
     lv_obj_t *min1_label = lv_label_create(min1_btn);
     lv_label_set_text(min1_label, "1 ХВИЛИНА");
-    lv_obj_set_style_text_font(min1_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(min1_label, Font2, 0);
     lv_obj_center(min1_label);
 
     lv_obj_add_event_cb(min1_btn, survival_duration_event_cb, LV_EVENT_CLICKED, (void *)1);
@@ -527,7 +527,7 @@ void create_reaction_survival_submenu()
 
     lv_obj_t *min2_label = lv_label_create(min2_btn);
     lv_label_set_text(min2_label, "2 ХВИЛИНИ");
-    lv_obj_set_style_text_font(min2_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(min2_label, Font2, 0);
     lv_obj_center(min2_label);
 
     lv_obj_add_event_cb(min2_btn, survival_duration_event_cb, LV_EVENT_CLICKED, (void *)2);
@@ -541,7 +541,7 @@ void create_reaction_survival_submenu()
 
     lv_obj_t *min3_label = lv_label_create(min3_btn);
     lv_label_set_text(min3_label, "3 ХВИЛИНИ");
-    lv_obj_set_style_text_font(min3_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(min3_label, Font2, 0);
     lv_obj_center(min3_label);
 
     lv_obj_add_event_cb(min3_btn, survival_duration_event_cb, LV_EVENT_CLICKED, (void *)3);
@@ -557,7 +557,7 @@ void create_reaction_survival_submenu()
 
     lv_obj_t *back_label = lv_label_create(back_button);
     lv_label_set_text(back_label, "НАЗАД");
-    lv_obj_set_style_text_font(back_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(back_label, Font2, 0);
     lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
     lv_obj_center(back_label);
 

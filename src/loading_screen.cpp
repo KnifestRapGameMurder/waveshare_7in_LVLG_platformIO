@@ -9,8 +9,7 @@
 #include <stdio.h>
 #include <Arduino.h>
 
-// Assumes these fonts are defined and linked externally (e.g., in lv_conf.h)
-extern const lv_font_t minecraft_ten_96;
+#include "fonts.h"
 
 // ==============================================================================
 // PRIVATE UI OBJECTS
@@ -218,14 +217,14 @@ void loading_screen_create(ScreenTransitionCallback_t transition_cb)
     // Add main title
     main_label = lv_label_create(lv_scr_act());
     lv_label_set_text(main_label, "НЕЙРО");
-    lv_obj_set_style_text_font(main_label, &minecraft_ten_96, 0);
+    lv_obj_set_style_text_font(main_label, Font1, 0);
     lv_obj_set_style_text_color(main_label, lv_color_white(), 0);
     lv_obj_align(main_label, LV_ALIGN_CENTER, 0, -80);
 
     // Add subtitle
     sub_label_1 = lv_label_create(lv_scr_act());
     lv_label_set_text(sub_label_1, "БЛОК");
-    lv_obj_set_style_text_font(sub_label_1, &minecraft_ten_96, 0);
+    lv_obj_set_style_text_font(sub_label_1, Font1, 0);
     lv_obj_set_style_text_color(sub_label_1, lv_color_white(), 0);
     lv_obj_align_to(sub_label_1, main_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
 

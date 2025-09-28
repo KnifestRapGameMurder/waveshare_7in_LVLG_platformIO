@@ -3,6 +3,7 @@
 #include "app_screens.h"
 #include <Arduino.h>
 #include <lvgl.h>
+#include "fonts.h"
 
 // === Game Constants ===
 const int GET_READY_DURATION = 3000;       // 3 seconds
@@ -54,9 +55,6 @@ static void create_game_over_menu();
 static void game_over_menu_event_handler(lv_event_t *e);
 static void back_to_menu_event_handler(lv_event_t *e);
 
-// External font (assuming it's defined elsewhere)
-extern const lv_font_t minecraft_ten_48;
-
 void create_accuracy_trainer_screen()
 {
     // Clean the screen
@@ -70,19 +68,19 @@ void create_accuracy_trainer_screen()
 
     // Create HUD label
     hud_label = lv_label_create(accuracy_screen);
-    lv_obj_set_style_text_font(hud_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(hud_label, Font2, 0);
     lv_obj_set_style_text_color(hud_label, lv_color_white(), 0);
     lv_obj_align(hud_label, LV_ALIGN_TOP_MID, 0, 20);
 
     // Create info label
     info_label = lv_label_create(accuracy_screen);
-    lv_obj_set_style_text_font(info_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(info_label, Font2, 0);
     lv_obj_set_style_text_color(info_label, lv_color_white(), 0);
     lv_obj_align(info_label, LV_ALIGN_CENTER, 0, 0);
 
     // Create results label (hidden initially)
     results_label = lv_label_create(accuracy_screen);
-    lv_obj_set_style_text_font(results_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(results_label, Font2, 0);
     lv_obj_set_style_text_color(results_label, lv_color_white(), 0);
     lv_obj_align(results_label, LV_ALIGN_CENTER, 0, 0);
     lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
@@ -98,7 +96,7 @@ void create_accuracy_trainer_screen()
 
     lv_obj_t *back_label = lv_label_create(back_btn);
     lv_label_set_text(back_label, "НАЗАД");
-    lv_obj_set_style_text_font(back_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(back_label, Font2, 0);
     lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
     lv_obj_center(back_label);
 
@@ -488,7 +486,7 @@ static void create_game_over_menu()
 
     lv_obj_t *play_label = lv_label_create(play_again_btn);
     lv_label_set_text(play_label, "Грати Знову");
-    lv_obj_set_style_text_font(play_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(play_label, Font2, 0);
     lv_obj_center(play_label);
 
     lv_obj_add_event_cb(play_again_btn, game_over_menu_event_handler, LV_EVENT_CLICKED, (void *)0);
@@ -502,7 +500,7 @@ static void create_game_over_menu()
 
     lv_obj_t *exit_label = lv_label_create(exit_btn);
     lv_label_set_text(exit_label, "Вихід");
-    lv_obj_set_style_text_font(exit_label, &minecraft_ten_48, 0);
+    lv_obj_set_style_text_font(exit_label, Font2, 0);
     lv_obj_center(exit_label);
 
     lv_obj_add_event_cb(exit_btn, game_over_menu_event_handler, LV_EVENT_CLICKED, (void *)1);
