@@ -454,6 +454,7 @@ static void game_over_menu_event_handler(lv_event_t *e)
     else if (action == 1) // Exit
     {
         Serial.println("Coord Menu: Exit");
+        last_interaction_time = lv_tick_get(); // Add this
         current_state = STATE_COORDINATION_SUBMENU;
         set_coordination_trainer_state(CT_STATE_IDLE);
         current_submenu_state = CS_SUBMENU_IDLE;
@@ -464,6 +465,7 @@ static void game_over_menu_event_handler(lv_event_t *e)
 static void back_to_menu_event_handler(lv_event_t *e)
 {
     Serial.println("Coord: Back to menu");
+    last_interaction_time = lv_tick_get(); // Add this
     current_state = STATE_COORDINATION_SUBMENU;
     set_coordination_trainer_state(CT_STATE_IDLE);
     current_submenu_state = CS_SUBMENU_IDLE;

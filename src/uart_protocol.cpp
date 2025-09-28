@@ -414,9 +414,12 @@ String UARTProtocol::getMessageTypeString(MessageType type)
 void UARTProtocol::sendMessage(const String &message)
 {
     if (serial)
-
     {
         serial->println(message);
+    }
+    else
+    {
+        Serial.println("[UART]\t" + message);
     }
 }
 

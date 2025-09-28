@@ -518,6 +518,7 @@ static void game_over_menu_event_handler(lv_event_t *e)
     else if (action == 1) // Exit
     {
         Serial.println("Acc Menu: Exit");
+        last_interaction_time = lv_tick_get(); // Add this
         current_state = STATE_MAIN_MENU;
         set_accuracy_trainer_state(AT_STATE_IDLE);
         create_main_menu();
@@ -527,6 +528,7 @@ static void game_over_menu_event_handler(lv_event_t *e)
 static void back_to_menu_event_handler(lv_event_t *e)
 {
     Serial.println("Acc: Back to menu");
+    last_interaction_time = lv_tick_get(); // Add this
     current_state = STATE_MAIN_MENU;
     set_accuracy_trainer_state(AT_STATE_IDLE);
     create_main_menu();

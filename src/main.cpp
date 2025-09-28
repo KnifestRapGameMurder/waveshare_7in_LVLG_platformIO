@@ -33,8 +33,16 @@ const uint32_t IDLE_TIMEOUT = 10000; // 10 seconds idle timeout
 uint32_t last_interaction_time = 0;
 Preferences preferences;
 
+// ========== UART SWITCH ===========
+#define UART_USED 0
+// ========== UART SWITCH ===========
+
 HardwareSerial uart_serial(2);
+#if UART_USED
 UARTProtocol uart_protocol(&uart_serial);
+#else
+UARTProtocol uart_protocol(nullptr); // Dummy
+#endif
 
 // Screen dimensions (No longer static, accessible via extern in app_screens.h)
 int32_t SCR_W = 800,
@@ -67,6 +75,8 @@ static void app_timer_cb(lv_timer_t *timer)
     // 1. Check for idle timeout (return to loading screen if no interaction)
     if (current_state == STATE_MAIN_MENU)
     {
+        Serial.printf("[IDLE] now=%u, last=%u, diff=%u\n", now, last_interaction_time, now - last_interaction_time);
+
         if ((now - last_interaction_time) >= IDLE_TIMEOUT)
         {
             Serial.println("[ТАЙМ-АУТ] Досягнуто тайм-аут бездіяльності - повернення до екрану завантаження");
@@ -148,7 +158,9 @@ void setup()
     Board *board = new Board();
     board->init();
 
+#if UART_USED
     uart_serial.begin(115200, SERIAL_8N1, 44, 43);
+#endif
 
 // Configure anti-tearing RGB double-buffer mode (ESP-BSP style)
 #if LVGL_PORT_AVOID_TEARING_MODE

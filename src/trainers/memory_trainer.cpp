@@ -500,6 +500,7 @@ static void game_over_menu_event_handler(lv_event_t *e)
     else if (action == 1) // Exit
     {
         Serial.println("Mem Menu: Exit");
+        last_interaction_time = lv_tick_get(); // Add this
         current_state = STATE_MAIN_MENU;
         set_memory_trainer_state(MT_STATE_IDLE);
         create_main_menu();
@@ -509,6 +510,7 @@ static void game_over_menu_event_handler(lv_event_t *e)
 static void back_to_menu_event_handler(lv_event_t *e)
 {
     Serial.println("Mem: Back to menu");
+    last_interaction_time = lv_tick_get(); // Add this
     current_state = STATE_MAIN_MENU;
     set_memory_trainer_state(MT_STATE_IDLE);
     create_main_menu();
