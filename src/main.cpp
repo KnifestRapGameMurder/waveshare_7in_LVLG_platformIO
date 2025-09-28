@@ -11,6 +11,7 @@
 #include "lv_conf.h"
 #include <math.h>
 #include "uart_protocol.h"
+#include <Preferences.h>
 
 // Include external components
 #include "loading_screen.h"
@@ -28,6 +29,7 @@ AppState current_state = STATE_LOADING;
 uint32_t state_start_time = 0;
 const uint32_t IDLE_TIMEOUT = 10000; // 10 seconds idle timeout
 uint32_t last_interaction_time = 0;
+Preferences preferences;
 
 HardwareSerial uart_serial(2);
 UARTProtocol uart_protocol(&uart_serial);
@@ -61,7 +63,7 @@ static void app_timer_cb(lv_timer_t *timer)
     uint32_t now = lv_tick_get();
 
     // 1. Check for idle timeout (return to loading screen if no interaction)
-    if (current_state == STATE_MAIN_MENU || (current_state >= STATE_TRAINER_1 && current_state <= STATE_TRAINER_4))
+    if (current_state == STATE_MAIN_MENU)
     {
         if ((now - last_interaction_time) >= IDLE_TIMEOUT)
         {
@@ -84,6 +86,31 @@ static void app_timer_cb(lv_timer_t *timer)
 
         loading_screen_update_animation(dt);
     }
+    // 3. Run trainer logic based on current state
+    else
+    {
+        switch (current_state)
+        {
+        case STATE_ACCURACY_TRAINER:
+            run_accuracy_trainer();
+            break;
+        case STATE_REACTION_TIME_TRIAL:
+            run_time_trial();
+            break;
+        case STATE_REACTION_SURVIVAL:
+            run_survival_time_trainer();
+            break;
+        case STATE_MEMORY_TRAINER:
+            run_memory_trainer();
+            break;
+        case STATE_COORDINATION_TRAINER:
+            run_coordination_trainer();
+            break;
+        default:
+            // Menu states don't need continuous updates
+            break;
+        }
+    }
 
     last_time = now;
 }
@@ -97,7 +124,7 @@ void setup()
     Board *board = new Board();
     board->init();
 
-    // uart_serial.begin(115200, SERIAL_8N1, 44, 43);
+    uart_serial.begin(115200, SERIAL_8N1, 44, 43);
 
 // Configure anti-tearing RGB double-buffer mode (ESP-BSP style)
 #if LVGL_PORT_AVOID_TEARING_MODE

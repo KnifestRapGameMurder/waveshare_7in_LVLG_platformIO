@@ -8,6 +8,10 @@
 
 #include <lvgl.h>
 #include <Arduino.h>
+#include "accuracy_trainer.h"
+#include "reaction_trainer.h"
+#include "memory_trainer.h"
+#include "coordination_trainer.h"
 
 // Forward declaration for missing font definition in this scope
 // NOTE: This must be defined externally for compilation to succeed.
@@ -16,12 +20,24 @@ extern const lv_font_t minecraft_ten_48;
 // Application states (Defined here as they control the UI flow)
 enum AppState
 {
-    STATE_LOADING,   // Loading screen with animation
-    STATE_MAIN_MENU, // Main menu with 4 training buttons
-    STATE_TRAINER_1, // Training module 1
-    STATE_TRAINER_2, // Training module 2
-    STATE_TRAINER_3, // Training module 3
-    STATE_TRAINER_4  // Training module 4
+    STATE_LOADING,              // Loading screen with animation
+    STATE_MAIN_MENU,            // Main menu with 4 training buttons
+    STATE_ACCURACY_TRAINER,     // Accuracy trainer
+    STATE_REACTION_TRAINER,     // Reaction trainer (Time Trial & Survival)
+    STATE_MEMORY_TRAINER,       // Memory trainer
+    STATE_COORDINATION_TRAINER, // Coordination trainer
+
+    // Sub-states for reaction trainer
+    STATE_REACTION_SUBMENU,
+    STATE_REACTION_TIME_TRIAL,
+    STATE_REACTION_SURVIVAL,
+    STATE_REACTION_SURVIVAL_SUBMENU,
+
+    // Sub-states for accuracy trainer
+    STATE_ACCURACY_DIFFICULTY_SUBMENU,
+
+    // Sub-states for coordination trainer
+    STATE_COORDINATION_SUBMENU
 };
 
 // Application State Variables (Defined in main.cpp, declared here as extern)
