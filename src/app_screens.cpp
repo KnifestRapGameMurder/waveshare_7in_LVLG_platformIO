@@ -179,10 +179,10 @@ void create_main_menu()
 
     // Create 4 trainer buttons taking all screen space in 2x2 grid
     const char *trainer_names[] = {
-        "ACCURACY",    // Accuracy Trainer
-        "REACTION",    // Reaction Trainer
-        "MEMORY",      // Memory Trainer
-        "COORDINATION" // Coordination Trainer
+        "ТОЧНІСТЬ",    // Accuracy Trainer
+        "РЕАКЦІЯ",     // Reaction Trainer
+        "ПАМ'ЯТЬ",     // Memory Trainer
+        "КООРДИНАЦІЯ"  // Coordination Trainer
     };
 
     // Different colors for each button

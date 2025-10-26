@@ -5,7 +5,8 @@
 extern UARTProtocol uart_protocol;
 
 // Cache for button states (16 buttons)
-uint16_t button_state_cache = 0;
+// Initialize with 0xFFFF = all buttons released (1 = not pressed)
+uint16_t button_state_cache = 0xFFFF;
 
 // --- Button Abstraction ---
 uint16_t expanderRead()

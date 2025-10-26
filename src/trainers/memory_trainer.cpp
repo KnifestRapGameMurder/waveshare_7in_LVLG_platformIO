@@ -24,6 +24,14 @@ static int current_user_input_step = 0;              // Step in user input
 static unsigned long memory_trainer_timer = 0;       // Timer for states
 static uint16_t last_button_state = 0xFFFF;          // Start with all buttons released
 
+// Quick LED feedback without delay()
+static bool led_feedback_active = false;
+static int led_feedback_index = -1;
+static unsigned long led_feedback_start = 0;
+
+// Sequence showing state
+static bool led_is_showing = false;
+
 // === UI Elements ===
 static lv_obj_t *memory_screen = NULL;
 static lv_obj_t *level_label = NULL;
@@ -107,6 +115,7 @@ void set_memory_trainer_state(MemoryTrainerState newState)
         lv_label_set_text(info_label, "Приготуйся!");
         lv_obj_clear_flag(info_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_style_text_color(info_label, lv_color_white(), 0);
         current_sequence_length = 1;
         current_sequence_step = 0;
         current_user_input_step = 0;
@@ -118,14 +127,25 @@ void set_memory_trainer_state(MemoryTrainerState newState)
             user_input_sequence[i] = -1;
         }
 
+        // Initialize button state to current state to prevent false triggers
+        last_button_state = expanderRead();
+        Serial.printf("Mem: Initial button state: 0x%04X (binary: ", last_button_state);
+        for (int i = 15; i >= 0; i--) {
+            Serial.print((last_button_state & (1 << i)) ? '1' : '0');
+        }
+        Serial.println(")");
+
         // Generate new random sequence
         generate_new_random_sequence();
+        Serial.printf("Mem: Generated sequence for level %d\n", current_sequence_length);
         update_level_display();
         strip_Clear();
+        strip_Show();
         break;
 
     case MT_STATE_SHOW_SEQUENCE:
         lv_label_set_text(info_label, "Запам'ятовуй...");
+        lv_obj_set_style_text_color(info_label, lv_color_white(), 0);
         update_level_display();
 
         if (current_sequence_step == 0)
@@ -139,25 +159,25 @@ void set_memory_trainer_state(MemoryTrainerState newState)
                 Serial.print(' ');
             }
             Serial.println();
-        }
-
-        if (current_sequence_step < current_sequence_length)
-        {
-            Serial.print("Mem Show LED ");
-            Serial.println(memory_sequence[current_sequence_step]);
-            strip_SetPixelColor(memory_sequence[current_sequence_step], RgbColor(255, 0, 255)); // Purple for memory
-            strip_Show();
-        }
-        else
-        {
-            set_memory_trainer_state(MT_STATE_WAIT_FOR_INPUT);
+            
+            // Reset sequence showing state
+            led_is_showing = false;
         }
         break;
 
     case MT_STATE_WAIT_FOR_INPUT:
         lv_label_set_text(info_label, "Твоя черга!");
+        lv_obj_set_style_text_color(info_label, lv_color_white(), 0);
         current_user_input_step = 0;
+        // Reset button state to prevent false triggers
+        last_button_state = expanderRead();
+        Serial.printf("Mem: WAIT_FOR_INPUT button state: 0x%04X (binary: ", last_button_state);
+        for (int i = 15; i >= 0; i--) {
+            Serial.print((last_button_state & (1 << i)) ? '1' : '0');
+        }
+        Serial.println(")");
         strip_Clear();
+        strip_Show();
         break;
 
     case MT_STATE_ROUND_COMPLETE:
@@ -174,10 +194,12 @@ void set_memory_trainer_state(MemoryTrainerState newState)
         lv_label_set_text(info_label, "Гру завершено!");
         lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         strip_Clear();
+        Serial.printf("Mem: GAME_OVER state set, timer: %lu\n", memory_trainer_timer);
         break;
 
     case MT_STATE_GAME_OVER_MENU:
         create_game_over_menu();
+        Serial.println("Mem: GAME_OVER_MENU state set, menu created");
         break;
 
     default:
@@ -199,64 +221,53 @@ static void generate_new_random_sequence()
     {
         memory_sequence[i] = -1;
     }
-
-    // Generate new random sequence
-    for (int pos = 0; pos < current_sequence_length; pos++)
-    {
+    
+    // Generate new random sequence using simple but reliable logic from working version
+    for (int pos = 0; pos < current_sequence_length; pos++) {
         int attempts = 0;
         int chosen = -1;
-
-        do
-        {
+        
+        do {
             chosen = random(NUM_LEDS);
             attempts++;
-
-            // Check if button repeats with previous positions
+            
+            // Check if button doesn't repeat with previous positions
             bool isValid = true;
-
+            
             // Avoid direct repeats
-            if (pos > 0 && chosen == memory_sequence[pos - 1])
-            {
+            if (pos > 0 && chosen == memory_sequence[pos - 1]) {
                 isValid = false;
             }
-
-            // Avoid repeats two positions back
-            if (pos > 1 && chosen == memory_sequence[pos - 2])
-            {
+            
+            // Avoid repeats one position back
+            if (pos > 1 && chosen == memory_sequence[pos - 2]) {
                 isValid = false;
             }
-
-            // For longer sequences, avoid too frequent repeats
-            if (pos > 2)
-            {
+            
+            // For longer sequences avoid too frequent repeats
+            if (pos > 2) {
                 int repeatCount = 0;
-                for (int j = 0; j < pos; j++)
-                {
-                    if (memory_sequence[j] == chosen)
-                    {
+                for (int j = 0; j < pos; j++) {
+                    if (memory_sequence[j] == chosen) {
                         repeatCount++;
                     }
                 }
-                // Don't allow more than 1/3 of positions to be the same
-                if (repeatCount > (pos / 3))
-                {
+                // Don't allow more than 1/3 positions to be the same
+                if (repeatCount > (pos / 3)) {
                     isValid = false;
                 }
             }
-
-            if (isValid)
-            {
+            
+            if (isValid) {
                 memory_sequence[pos] = chosen;
                 break;
             }
-
-        } while (attempts < 50); // Limit attempts
-
-        // If no suitable option found, take any different from previous
-        if (attempts >= 50)
-        {
-            do
-            {
+            
+        } while (attempts < 50); // limit number of attempts
+        
+        // If no suitable variant found, take any different from previous
+        if (attempts >= 50) {
+            do {
                 chosen = random(NUM_LEDS);
             } while (pos > 0 && chosen == memory_sequence[pos - 1]);
             memory_sequence[pos] = chosen;
@@ -271,27 +282,57 @@ static void check_button_presses_memory()
 
     uint16_t current_button_state = expanderRead();
 
+    // Add debouncing - wait at least 50ms between checks
+    static unsigned long last_check_time = 0;
+    if (lv_tick_get() - last_check_time < 50) {
+        return;
+    }
+    last_check_time = lv_tick_get();
+
+    // Debug: print button state changes
+    if (current_button_state != last_button_state) {
+        Serial.printf("Mem: Button state changed from 0x%04X to 0x%04X\n", last_button_state, current_button_state);
+        Serial.print("Mem: Previous: ");
+        for (int i = 15; i >= 0; i--) {
+            Serial.print((last_button_state & (1 << i)) ? '1' : '0');
+        }
+        Serial.print(", Current: ");
+        for (int i = 15; i >= 0; i--) {
+            Serial.print((current_button_state & (1 << i)) ? '1' : '0');
+        }
+        Serial.println();
+    }
+
     for (int i = 0; i < NUM_LEDS; i++)
     {
         bool was_pressed = !(last_button_state & (1 << i));
         bool is_pressed = !(current_button_state & (1 << i));
 
-        if (!was_pressed && is_pressed) // Button just pressed
-        {
-            Serial.print("Mem Btn ");
-            Serial.println(i);
+        // Debug: print logic for each button
+        if (current_button_state != last_button_state) {
+            uint8_t last_bit = (last_button_state & (1 << i)) ? 1 : 0;
+            uint8_t curr_bit = (current_button_state & (1 << i)) ? 1 : 0;
+            Serial.printf("Mem: Btn%d - bit: %d->%d, pressed: %d->%d\n", 
+                i, last_bit, curr_bit, was_pressed, is_pressed);
+        }
 
-            // Show feedback
+        // Only register button press on rising edge (not pressed -> pressed)
+        if (!was_pressed && is_pressed) 
+        {
+            Serial.printf("Mem Btn %d pressed (was: %d, now: %d)\n", i, was_pressed, is_pressed);
+
+            // Show feedback without delay
             strip_SetPixelColor(i, RgbColor(255, 0, 255)); // Purple feedback
             strip_Show();
-            delay(120); // Small delay for visual feedback
-            strip_Clear();
-            strip_Show();
+            led_feedback_active = true;
+            led_feedback_index = i;
+            led_feedback_start = lv_tick_get();
 
             user_input_sequence[current_user_input_step] = i;
 
             if (user_input_sequence[current_user_input_step] == memory_sequence[current_user_input_step])
             {
+                Serial.printf("Mem: Correct! Expected %d, got %d\n", memory_sequence[current_user_input_step], i);
                 current_user_input_step++;
                 if (current_user_input_step == current_sequence_length)
                 {
@@ -304,8 +345,9 @@ static void check_button_presses_memory()
             }
             else
             {
-                Serial.println("Mem: Wrong!");
-                set_memory_trainer_state(MT_STATE_GAME_OVER);
+                Serial.printf("Mem: Wrong! Expected %d, got %d\n", memory_sequence[current_user_input_step], i);
+                // Skip the GAME_OVER delay and go directly to menu
+                set_memory_trainer_state(MT_STATE_GAME_OVER_MENU);
             }
             break;
         }
@@ -328,6 +370,7 @@ void run_memory_trainer()
     case MT_STATE_GET_READY:
         if (lv_tick_get() - memory_trainer_timer > GET_READY_DURATION)
         {
+            Serial.println("Mem: GET_READY -> SHOW_SEQUENCE");
             set_memory_trainer_state(MT_STATE_SHOW_SEQUENCE);
         }
         break;
@@ -341,22 +384,38 @@ void run_memory_trainer()
             unsigned long show_dur = (unsigned long)(LED_SHOW_DURATION * (1.0f - accel));
             unsigned long pause_dur = (unsigned long)(LED_PAUSE_DURATION * (1.0f - accel * 0.6f));
 
-            if (elapsed > show_dur && elapsed <= (show_dur + pause_dur))
+            if (elapsed <= show_dur)
             {
-                strip_Clear();
-                strip_Show();
+                // Show current LED in sequence (only once per step)
+                if (!led_is_showing) {
+                    Serial.printf("Mem: Showing step %d, LED %d\n", current_sequence_step, memory_sequence[current_sequence_step]);
+                    strip_Clear();
+                    strip_SetPixelColor(memory_sequence[current_sequence_step], RgbColor(255, 0, 255)); // Purple
+                    strip_Show();
+                    led_is_showing = true;
+                }
+            }
+            else if (elapsed > show_dur && elapsed <= (show_dur + pause_dur))
+            {
+                // Pause between LEDs (only clear once)
+                if (led_is_showing) {
+                    strip_Clear();
+                    strip_Show();
+                    led_is_showing = false;
+                }
             }
             else if (elapsed > (show_dur + pause_dur))
             {
+                // Move to next step
                 current_sequence_step++;
-                if (current_sequence_step < current_sequence_length)
+                memory_trainer_timer = lv_tick_get(); // Reset timer for next LED
+                led_is_showing = false; // Reset for next LED
+                Serial.printf("Mem: Moving to step %d of %d\n", current_sequence_step, current_sequence_length);
+                
+                if (current_sequence_step >= current_sequence_length)
                 {
-                    strip_SetPixelColor(memory_sequence[current_sequence_step], RgbColor(255, 0, 255));
-                    strip_Show();
-                    memory_trainer_timer = lv_tick_get();
-                }
-                else
-                {
+                    // Finished showing sequence, wait for input
+                    Serial.println("Mem: SHOW_SEQUENCE -> WAIT_FOR_INPUT");
                     set_memory_trainer_state(MT_STATE_WAIT_FOR_INPUT);
                 }
             }
@@ -365,24 +424,18 @@ void run_memory_trainer()
 
     case MT_STATE_WAIT_FOR_INPUT:
         check_button_presses_memory();
+        // Handle LED feedback timeout
+        if (led_feedback_active && lv_tick_get() - led_feedback_start > 120) {
+            led_feedback_active = false;
+            led_feedback_index = -1;
+            strip_Clear();
+            strip_Show();
+        }
         break;
 
     case MT_STATE_ROUND_COMPLETE:
     {
-        // Pulse all LEDs green
-        unsigned long elapsed = lv_tick_get() - memory_trainer_timer;
-        if (elapsed < ROUND_COMPLETE_DURATION)
-        {
-            float phase = (elapsed % 600) / 600.0f;                                     // 0..1
-            float s = (phase < 0.5f) ? (phase * 2.0f) : (1.0f - (phase - 0.5f) * 2.0f); // Triangle 0..1..0
-            uint8_t bright = (uint8_t)(255 * (0.3f + 0.7f * s));
-            for (int i = 0; i < NUM_LEDS; i++)
-            {
-                strip_SetPixelColor(i, RgbColor(0, bright, 0));
-            }
-            strip_Show();
-        }
-
+        // Just wait without LED animation
         if (lv_tick_get() - memory_trainer_timer > ROUND_COMPLETE_DURATION)
         {
             if (current_sequence_length > MAX_SEQUENCE_LENGTH)
@@ -393,6 +446,7 @@ void run_memory_trainer()
             {
                 current_sequence_step = 0;
                 current_user_input_step = 0;
+                led_is_showing = false; // Reset LED showing state
                 set_memory_trainer_state(MT_STATE_SHOW_SEQUENCE);
             }
         }
@@ -401,22 +455,12 @@ void run_memory_trainer()
 
     case MT_STATE_GAME_OVER:
     {
-        // Red pulse on defeat
-        unsigned long elapsed_go = lv_tick_get() - memory_trainer_timer;
-        if (elapsed_go < GAME_OVER_MESSAGE_DURATION)
+        // Just wait without LED animation
+        unsigned long elapsed = lv_tick_get() - memory_trainer_timer;
+        Serial.printf("Mem: GAME_OVER - elapsed: %lu, target: %d\n", elapsed, GAME_OVER_MESSAGE_DURATION);
+        if (elapsed > GAME_OVER_MESSAGE_DURATION)
         {
-            float phase = (elapsed_go % 500) / 500.0f; // 0..1
-            float w = sinf(phase * 3.14159f);          // 0..1..0
-            uint8_t bright = (uint8_t)(255 * (0.2f + 0.8f * w));
-            for (int i = 0; i < NUM_LEDS; i++)
-            {
-                strip_SetPixelColor(i, RgbColor(bright, 0, 0));
-            }
-            strip_Show();
-        }
-
-        if (lv_tick_get() - memory_trainer_timer > GAME_OVER_MESSAGE_DURATION)
-        {
+            Serial.println("Mem: GAME_OVER -> GAME_OVER_MENU");
             set_memory_trainer_state(MT_STATE_GAME_OVER_MENU);
         }
         break;
@@ -455,14 +499,45 @@ static void display_results()
 
 static void create_game_over_menu()
 {
-    // Hide other labels
+    // Hide other labels and clear buttons first
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
+    
+    // Clean up existing buttons if they exist
+    if (play_again_btn) {
+        lv_obj_del(play_again_btn);
+        play_again_btn = NULL;
+    }
+    if (exit_btn) {
+        lv_obj_del(exit_btn);
+        exit_btn = NULL;
+    }
+
+    // Display result message
+    lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_text_color(results_label, lv_color_white(), 0);
+    
+    char results_text[256];
+    if (current_sequence_length > MAX_SEQUENCE_LENGTH)
+    {
+        snprintf(results_text, sizeof(results_text),
+                 "Гру завершено!\n\nТи переміг!\nРівень: %d",
+                 MAX_SEQUENCE_LENGTH);
+    }
+    else
+    {
+        snprintf(results_text, sizeof(results_text),
+                 "Гру завершено!\n\nТвій рівень: %d",
+                 current_sequence_length - 1);
+    }
+    
+    lv_label_set_text(results_label, results_text);
+    lv_obj_align(results_label, LV_ALIGN_CENTER, 0, -60);
 
     // Create play again button
     play_again_btn = lv_btn_create(memory_screen);
-    lv_obj_set_size(play_again_btn, 300, 80);
-    lv_obj_align(play_again_btn, LV_ALIGN_CENTER, 0, -50);
+    lv_obj_set_size(play_again_btn, 300, 60);
+    lv_obj_align(play_again_btn, LV_ALIGN_CENTER, 0, 10);
     lv_obj_set_style_bg_color(play_again_btn, lv_color_hex(0x00FF00), 0);
     lv_obj_set_style_bg_color(play_again_btn, lv_color_hex(0x00AA00), LV_STATE_PRESSED);
 
@@ -475,8 +550,8 @@ static void create_game_over_menu()
 
     // Create exit button
     exit_btn = lv_btn_create(memory_screen);
-    lv_obj_set_size(exit_btn, 300, 80);
-    lv_obj_align(exit_btn, LV_ALIGN_CENTER, 0, 50);
+    lv_obj_set_size(exit_btn, 300, 60);
+    lv_obj_align(exit_btn, LV_ALIGN_CENTER, 0, 80);
     lv_obj_set_style_bg_color(exit_btn, lv_color_hex(0xFF0000), 0);
     lv_obj_set_style_bg_color(exit_btn, lv_color_hex(0xAA0000), LV_STATE_PRESSED);
 
@@ -495,12 +570,21 @@ static void game_over_menu_event_handler(lv_event_t *e)
     if (action == 0) // Play again
     {
         Serial.println("Mem Menu: Play Again");
+        // Clean up buttons before resetting
+        if (play_again_btn) {
+            lv_obj_del(play_again_btn);
+            play_again_btn = NULL;
+        }
+        if (exit_btn) {
+            lv_obj_del(exit_btn);
+            exit_btn = NULL;
+        }
         set_memory_trainer_state(MT_STATE_GET_READY);
     }
     else if (action == 1) // Exit
     {
         Serial.println("Mem Menu: Exit");
-        last_interaction_time = lv_tick_get(); // Add this
+        last_interaction_time = lv_tick_get();
         current_state = STATE_MAIN_MENU;
         set_memory_trainer_state(MT_STATE_IDLE);
         create_main_menu();
@@ -510,8 +594,13 @@ static void game_over_menu_event_handler(lv_event_t *e)
 static void back_to_menu_event_handler(lv_event_t *e)
 {
     Serial.println("Mem: Back to menu");
-    last_interaction_time = lv_tick_get(); // Add this
+    last_interaction_time = lv_tick_get();
     current_state = STATE_MAIN_MENU;
     set_memory_trainer_state(MT_STATE_IDLE);
+    // Clean up LED feedback state
+    led_feedback_active = false;
+    led_feedback_index = -1;
+    strip_Clear();
+    strip_Show();
     create_main_menu();
 }

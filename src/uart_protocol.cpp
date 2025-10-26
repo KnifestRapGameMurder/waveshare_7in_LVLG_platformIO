@@ -140,7 +140,9 @@ void UARTProtocol::handleLogMessage(const String &data)
 String UARTProtocol::uint16ToBinaryString(uint16_t value)
 {
     String binary = "";
-    for (int i = 15; i >= 0; i--)
+    // Make string position directly map to button number
+    // button 0 = binary[0], button 1 = binary[1], etc.
+    for (int i = 0; i < 16; i++)
     {
         binary += (value & (1 << i)) ? '1' : '0';
     }
@@ -150,11 +152,13 @@ String UARTProtocol::uint16ToBinaryString(uint16_t value)
 uint16_t UARTProtocol::binaryStringToUint16(const String &binaryStr)
 {
     uint16_t value = 0;
+    // Make string position directly map to button number
+    // binaryStr[0] = button 0, binaryStr[1] = button 1, etc.
     for (int i = 0; i < 16 && i < binaryStr.length(); i++)
     {
         if (binaryStr[i] == '1')
         {
-            value |= (1 << (15 - i));
+            value |= (1 << i);
         }
     }
     return value;

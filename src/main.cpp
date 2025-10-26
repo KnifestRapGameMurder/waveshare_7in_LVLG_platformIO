@@ -150,6 +150,7 @@ static void app_timer_cb(lv_timer_t *timer)
     if (debug_label)
     {
         char buf[17];
+        // Display bits: button 0 → buf[0], button 1 → buf[1], etc.
         for (int i = 0; i < 16; i++)
         {
             buf[i] = (button_state_cache & (1 << i)) ? '1' : '0';
