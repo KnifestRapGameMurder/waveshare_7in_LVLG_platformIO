@@ -3,6 +3,15 @@
         "waveshare_st7262_lvgl.h": "c",
         "lv_demo_benchmark.h": "c",
         "bg_image.c": "cpp",
-        "dash_image.c": "cpp"
+        "dash_image.c": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "vector": "cpp",
+        "string_view": "cpp",
+        "initializer_list": "cpp",
+        "span": "cpp"
     }
 }

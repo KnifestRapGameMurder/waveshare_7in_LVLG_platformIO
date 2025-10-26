@@ -18,20 +18,25 @@ void update_button_state(uint16_t newState)
     button_state_cache = newState;
 }
 
+void rgbColorToHex6(RgbColor color, char out[7]) // out: "RRGGBB"
+{
+    snprintf(out, 7, "%02X%02X%02X", color.r, color.g, color.b);
+}
+
 // --- LED Strip Abstraction ---
 void strip_SetPixelColor(uint16_t n, RgbColor color)
 {
     if (n < NUM_LEDS)
     {
-        char hexColor[8];
-        snprintf(hexColor, sizeof(hexColor), "%02X%02X%02X", color.r, color.g, color.b);
+        char hexColor[7];
+        rgbColorToHex6(color, hexColor);
         uart_protocol.sendMessage(uart_protocol.createLEDSetPixelMessage(n, String(hexColor)));
     }
 }
 
 void strip_Clear()
 {
-    uart_protocol.sendMessage(uart_protocol.createLEDClearMessage());
+    uart_protocol.sendMessage(uart_protocol.createLEDClearMessage("000000"));
 }
 
 void strip_Show()
@@ -42,26 +47,9 @@ void strip_Show()
 
 void strip_ClearTo(RgbColor color)
 {
-    if (color.r == 0 && color.g == 0 && color.b == 0)
-    {
-        uart_protocol.sendMessage(uart_protocol.createLEDClearMessage());
-    }
-    else
-    {
-        // Set all LEDs to the specified color by setting each pixel individually
-        char hexColor[8];
-        snprintf(hexColor, sizeof(hexColor), "%02X%02X%02X", color.r, color.g, color.b);
-        for (int i = 0; i < NUM_LEDS; i++)
-        {
-            uart_protocol.sendMessage(uart_protocol.createLEDSetPixelMessage(i, String(hexColor)));
-        }
-    }
-}
-
-RgbColor strip_GetPixelColor(int pixel)
-{
-    // For now, return black as we don't typically need to read LED colors
-    return RgbColor(0, 0, 0);
+    char hexColor[7];
+    rgbColorToHex6(color, hexColor);
+    uart_protocol.sendMessage(uart_protocol.createLEDClearMessage(String(hexColor)));
 }
 
 // RGB utility functions

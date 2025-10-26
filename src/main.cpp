@@ -33,16 +33,10 @@ const uint32_t IDLE_TIMEOUT = 10000; // 10 seconds idle timeout
 uint32_t last_interaction_time = 0;
 Preferences preferences;
 
-// ========== UART SWITCH ===========
-#define UART_USED 1
-// ========== UART SWITCH ===========
 
-HardwareSerial uart_serial(2);
-#if UART_USED
-UARTProtocol uart_protocol(&uart_serial);
-#else
-UARTProtocol uart_protocol(nullptr); // Dummy
-#endif
+// HardwareSerial uart_serial(2);
+
+UARTProtocol uart_protocol(&Serial);
 
 // Screen dimensions (No longer static, accessible via extern in app_screens.h)
 int32_t SCR_W = 800,
@@ -131,24 +125,23 @@ static void app_timer_cb(lv_timer_t *timer)
     }
 
     // 4. Handle UART communication with slave (LEDs and buttons)
-    ProtocolMessage msg;
-    if (uart_protocol.receiveMessage(msg))
+    // ProtocolMessage msg;
+    String rawMessage;
+    if (uart_protocol.receiveMessage(rawMessage))
     {
-        switch (msg.type)
+        if(uart_protocol.isCMDMessage(rawMessage))
         {
-        case MSG_BUTTON_PRESSED:
-            // Set the bit for the pressed button (param1 = button index)
-            button_state_cache |= (1 << msg.param1);
-            Serial.printf("[UART] Button %d pressed\n", msg.param1);
-            break;
-        case MSG_BUTTON_RELEASED:
-            // Clear the bit for the released button (param1 = button index)
-            button_state_cache &= ~(1 << msg.param1);
-            Serial.printf("[UART] Button %d released\n", msg.param1);
-            break;
-        // Add other message types if needed (e.g., acknowledgments)
-        default:
-            break;
+            String command, param1, param2;
+            if(uart_protocol.parseCMDMessage(rawMessage, command, param1, param2))
+            {
+                if(command == CMD_BUTTONS)
+                {
+                    // Update button_state_cache from param1 (16-bit binary string)
+                    uint16_t new_button_state = uart_protocol.binaryStringToUint16(param1);
+                    button_state_cache = new_button_state;
+                    Serial.printf("[UART] Оновлено стан кнопок: 0b%s\n", param1.c_str());
+                }
+            }
         }
     }
 
@@ -171,16 +164,13 @@ static void app_timer_cb(lv_timer_t *timer)
 
 void setup()
 {
-    Serial.begin(115200);
+    // Serial.begin()
+    Serial.begin(115200, SERIAL_8N1, 44, 43);
     Serial.println("=== ESP32-S3 RGB LCD Система Без Розривів ===");
 
     Serial.println("Ініціалізація плати з конфігурацією без розривів...");
     Board *board = new Board();
     board->init();
-
-#if UART_USED
-    uart_serial.begin(115200, SERIAL_8N1, 44, 43);
-#endif
 
 // Configure anti-tearing RGB double-buffer mode (ESP-BSP style)
 #if LVGL_PORT_AVOID_TEARING_MODE
