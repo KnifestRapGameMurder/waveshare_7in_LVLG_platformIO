@@ -39,10 +39,12 @@ static lv_obj_t *info_label = NULL;
 static lv_obj_t *results_label = NULL;
 static lv_obj_t *play_again_btn = NULL;
 static lv_obj_t *exit_btn = NULL;
+static lv_obj_t *back_btn = NULL;
 
 // === Forward Declarations ===
 static void update_level_display();
 static void check_button_presses_memory();
+static void check_hardware_back_button();
 static void generate_new_random_sequence();
 static void display_results();
 static void create_game_over_menu();
@@ -80,7 +82,7 @@ void create_memory_trainer_screen()
     lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
     // Create back button
-    lv_obj_t *back_btn = lv_btn_create(memory_screen);
+    back_btn = lv_btn_create(memory_screen);
     lv_obj_set_size(back_btn, 200, 80);
     lv_obj_align(back_btn, LV_ALIGN_BOTTOM_MID, 0, -30);
     lv_obj_set_style_bg_color(back_btn, lv_color_hex(0x444444), 0);
@@ -116,6 +118,7 @@ void set_memory_trainer_state(MemoryTrainerState newState)
         lv_obj_clear_flag(info_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_text_color(info_label, lv_color_white(), 0);
+        
         current_sequence_length = 1;
         current_sequence_step = 0;
         current_user_input_step = 0;
@@ -289,37 +292,15 @@ static void check_button_presses_memory()
     }
     last_check_time = lv_tick_get();
 
-    // Debug: print button state changes
-    if (current_button_state != last_button_state) {
-        Serial.printf("Mem: Button state changed from 0x%04X to 0x%04X\n", last_button_state, current_button_state);
-        Serial.print("Mem: Previous: ");
-        for (int i = 15; i >= 0; i--) {
-            Serial.print((last_button_state & (1 << i)) ? '1' : '0');
-        }
-        Serial.print(", Current: ");
-        for (int i = 15; i >= 0; i--) {
-            Serial.print((current_button_state & (1 << i)) ? '1' : '0');
-        }
-        Serial.println();
-    }
-
     for (int i = 0; i < NUM_LEDS; i++)
     {
         bool was_pressed = !(last_button_state & (1 << i));
         bool is_pressed = !(current_button_state & (1 << i));
 
-        // Debug: print logic for each button
-        if (current_button_state != last_button_state) {
-            uint8_t last_bit = (last_button_state & (1 << i)) ? 1 : 0;
-            uint8_t curr_bit = (current_button_state & (1 << i)) ? 1 : 0;
-            Serial.printf("Mem: Btn%d - bit: %d->%d, pressed: %d->%d\n", 
-                i, last_bit, curr_bit, was_pressed, is_pressed);
-        }
-
         // Only register button press on rising edge (not pressed -> pressed)
         if (!was_pressed && is_pressed) 
         {
-            Serial.printf("Mem Btn %d pressed (was: %d, now: %d)\n", i, was_pressed, is_pressed);
+            Serial.printf("Mem Btn %d pressed\n", i);
 
             // Show feedback without delay
             strip_SetPixelColor(i, RgbColor(255, 0, 255)); // Purple feedback
@@ -346,8 +327,7 @@ static void check_button_presses_memory()
             else
             {
                 Serial.printf("Mem: Wrong! Expected %d, got %d\n", memory_sequence[current_user_input_step], i);
-                // Skip the GAME_OVER delay and go directly to menu
-                set_memory_trainer_state(MT_STATE_GAME_OVER_MENU);
+                set_memory_trainer_state(MT_STATE_GAME_OVER);
             }
             break;
         }
@@ -361,6 +341,39 @@ static void check_button_presses_memory()
         Serial.println("Mem: Timeout");
         set_memory_trainer_state(MT_STATE_GAME_OVER);
     }
+}
+
+static void check_hardware_back_button()
+{
+    // Check for hardware back button press (assuming button 15 is back button)
+    static uint16_t last_back_button_state = 0xFFFF;
+    static unsigned long last_back_check_time = 0;
+    static unsigned long last_debug_print = 0;
+    
+    // Debug print every 3 seconds to show we're being called
+    if (lv_tick_get() - last_debug_print > 3000) {
+        Serial.printf("Mem: check_hardware_back_button() called in state %d\n", memory_trainer_state);
+        last_debug_print = lv_tick_get();
+    }
+    
+    // Debouncing
+    if (lv_tick_get() - last_back_check_time < 100) {
+        return;
+    }
+    last_back_check_time = lv_tick_get();
+    
+    uint16_t current_button_state = expanderRead();
+    
+    // Check if back button (15) was pressed
+    bool was_pressed = !(last_back_button_state & (1 << 15));
+    bool is_pressed = !(current_button_state & (1 << 15));
+    
+    if (!was_pressed && is_pressed) {
+        Serial.printf("Mem: Hardware back button pressed in state: %d\n", memory_trainer_state);
+        back_to_menu_event_handler(NULL);
+    }
+    
+    last_back_button_state = current_button_state;
 }
 
 void run_memory_trainer()
@@ -456,9 +469,8 @@ void run_memory_trainer()
     case MT_STATE_GAME_OVER:
     {
         // Just wait without LED animation
-        unsigned long elapsed = lv_tick_get() - memory_trainer_timer;
-        Serial.printf("Mem: GAME_OVER - elapsed: %lu, target: %d\n", elapsed, GAME_OVER_MESSAGE_DURATION);
-        if (elapsed > GAME_OVER_MESSAGE_DURATION)
+        check_hardware_back_button();
+        if (lv_tick_get() - memory_trainer_timer > GAME_OVER_MESSAGE_DURATION)
         {
             Serial.println("Mem: GAME_OVER -> GAME_OVER_MENU");
             set_memory_trainer_state(MT_STATE_GAME_OVER_MENU);
@@ -468,6 +480,14 @@ void run_memory_trainer()
 
     case MT_STATE_GAME_OVER_MENU:
         // Wait for user input on buttons
+        check_hardware_back_button();
+        
+        // Add periodic heartbeat to check if we're still running
+        static unsigned long last_heartbeat = 0;
+        if (lv_tick_get() - last_heartbeat > 5000) { // Every 5 seconds
+            Serial.println("Mem: GAME_OVER_MENU heartbeat - still running");
+            last_heartbeat = lv_tick_get();
+        }
         break;
 
     default:
@@ -499,9 +519,13 @@ static void display_results()
 
 static void create_game_over_menu()
 {
+    Serial.println("Mem: create_game_over_menu() started");
+    
     // Hide other labels and clear buttons first
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
+    
+    Serial.println("Mem: Labels hidden");
     
     // Clean up existing buttons if they exist
     if (play_again_btn) {
@@ -512,11 +536,15 @@ static void create_game_over_menu()
         lv_obj_del(exit_btn);
         exit_btn = NULL;
     }
+    
+    Serial.println("Mem: Old buttons cleaned");
 
     // Display result message
+    Serial.println("Mem: About to show results label");
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_style_text_color(results_label, lv_color_white(), 0);
     
+    Serial.println("Mem: Creating results text");
     char results_text[256];
     if (current_sequence_length > MAX_SEQUENCE_LENGTH)
     {
@@ -531,36 +559,78 @@ static void create_game_over_menu()
                  current_sequence_length - 1);
     }
     
-    lv_label_set_text(results_label, results_text);
-    lv_obj_align(results_label, LV_ALIGN_CENTER, 0, -60);
+    Serial.println("Mem: Setting results text");
+    
+    // Check if results_label is valid
+    if (results_label == NULL) {
+        Serial.println("Mem: ERROR - results_label is NULL!");
+        return;
+    }
+    
+    Serial.println("Mem: results_label is valid, trying simple approach...");
+    
+    // Skip the problematic operations for now - just show a simple message
+    lv_obj_clear_flag(info_label, LV_OBJ_FLAG_HIDDEN);
+    lv_label_set_text(info_label, "Гру завершено!");
+    lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
+    
+    Serial.println("Mem: Simple game over message shown");
 
-    // Create play again button
+    Serial.println("Mem: About to create play again button");
+
+    Serial.println("Mem: About to create play again button");
+    // Create simple play again button without complex styling
     play_again_btn = lv_btn_create(memory_screen);
-    lv_obj_set_size(play_again_btn, 300, 60);
-    lv_obj_align(play_again_btn, LV_ALIGN_CENTER, 0, 10);
-    lv_obj_set_style_bg_color(play_again_btn, lv_color_hex(0x00FF00), 0);
-    lv_obj_set_style_bg_color(play_again_btn, lv_color_hex(0x00AA00), LV_STATE_PRESSED);
+    Serial.println("Mem: Play again button created");
+    
+    if (play_again_btn == NULL) {
+        Serial.println("Mem: ERROR - Could not create play again button!");
+        return;
+    }
+    
+    lv_obj_set_size(play_again_btn, 200, 50);
+    lv_obj_align(play_again_btn, LV_ALIGN_CENTER, 0, -20);
+    Serial.println("Mem: Play again button positioned");
 
+    // Create simple label
     lv_obj_t *play_label = lv_label_create(play_again_btn);
-    lv_label_set_text(play_label, "Грати Знову");
-    lv_obj_set_style_text_font(play_label, Font2, 0);
+    if (play_label == NULL) {
+        Serial.println("Mem: ERROR - Could not create play label!");
+        return;
+    }
+    
+    lv_label_set_text(play_label, "Грати");
     lv_obj_center(play_label);
+    Serial.println("Mem: Play again button completed");
 
     lv_obj_add_event_cb(play_again_btn, game_over_menu_event_handler, LV_EVENT_CLICKED, (void *)0);
+    Serial.println("Mem: Play again button event handler set");
 
-    // Create exit button
+    // Create simple exit button
+    Serial.println("Mem: About to create exit button");
     exit_btn = lv_btn_create(memory_screen);
-    lv_obj_set_size(exit_btn, 300, 60);
-    lv_obj_align(exit_btn, LV_ALIGN_CENTER, 0, 80);
-    lv_obj_set_style_bg_color(exit_btn, lv_color_hex(0xFF0000), 0);
-    lv_obj_set_style_bg_color(exit_btn, lv_color_hex(0xAA0000), LV_STATE_PRESSED);
+    if (exit_btn == NULL) {
+        Serial.println("Mem: ERROR - Could not create exit button!");
+        return;
+    }
+    
+    lv_obj_set_size(exit_btn, 200, 50);
+    lv_obj_align(exit_btn, LV_ALIGN_CENTER, 0, 40);
+    Serial.println("Mem: Exit button positioned");
 
     lv_obj_t *exit_label = lv_label_create(exit_btn);
+    if (exit_label == NULL) {
+        Serial.println("Mem: ERROR - Could not create exit label!");
+        return;
+    }
+    
     lv_label_set_text(exit_label, "Вихід");
-    lv_obj_set_style_text_font(exit_label, Font2, 0);
     lv_obj_center(exit_label);
+    Serial.println("Mem: Exit button completed");
 
     lv_obj_add_event_cb(exit_btn, game_over_menu_event_handler, LV_EVENT_CLICKED, (void *)1);
+    
+    Serial.println("Mem: create_game_over_menu() completed successfully");
 }
 
 static void game_over_menu_event_handler(lv_event_t *e)
@@ -593,7 +663,7 @@ static void game_over_menu_event_handler(lv_event_t *e)
 
 static void back_to_menu_event_handler(lv_event_t *e)
 {
-    Serial.println("Mem: Back to menu");
+    Serial.printf("Mem: Back button clicked in state: %d\n", memory_trainer_state);
     last_interaction_time = lv_tick_get();
     current_state = STATE_MAIN_MENU;
     set_memory_trainer_state(MT_STATE_IDLE);
