@@ -471,7 +471,8 @@ static void display_results()
     snprintf(results_text, sizeof(results_text),
              "Результати Влучності:\n\nПравильних: %d\nВсього раундів: %d\nВлучність: %.1f%%",
              correct_presses, total_rounds, accuracy);
-    lv_label_set_text(results_label, results_text);
+    // lv_label_set_text(results_label, results_text);
+    lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
 }
 
 static void create_game_over_menu()

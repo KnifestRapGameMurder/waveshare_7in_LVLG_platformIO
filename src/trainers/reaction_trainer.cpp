@@ -117,6 +117,8 @@ void create_reaction_trainer_screen()
 
 void set_time_trial_state(TimeTrialState newState)
 {
+    Serial.printf("set_time_trial_state(%d)\n", newState);
+
     timeTrialState = newState;
     timeTrialTimer = lv_tick_get();
 
@@ -329,7 +331,8 @@ static void display_time_trial_results()
                  "Результати Часу Реакції:\n\nНемає успішних спроб.");
     }
 
-    lv_label_set_text(results_label, results_text);
+    lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
+    // lv_label_set_text(results_label, results_text);
 }
 
 // === SURVIVAL MODE ===
@@ -392,6 +395,7 @@ void set_survival_time_state(SurvivalTimeState newState)
         lv_label_set_text(info_label, "СТОП!");
         lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         strip_Clear();
+        Serial.println("ST_STATE_STOP_MESSAGE");
         break;
 
     case ST_STATE_PRE_ROUND_DELAY:
@@ -495,6 +499,7 @@ static void check_button_presses_survival()
     }
 
     last_button_state = current_button_state;
+    Serial.println("last_button_state");
 }
 
 void run_survival_time_trainer()
@@ -534,6 +539,8 @@ void run_survival_time_trainer()
         break;
 
     case ST_STATE_STOP_MESSAGE:
+
+        // Serial.printf("%d %d", lv_tick_get(), survivalRoundTimer);
         if (lv_tick_get() - survivalRoundTimer > 1500)
             set_survival_time_state(ST_STATE_SHOW_RESULTS);
         break;
@@ -569,21 +576,30 @@ void run_survival_time_trainer()
     default:
         break;
     }
+
+    // Serial.println("run_survival_time_trainer end");
 }
 
 static void display_survival_results()
 {
+    Serial.println("display_survival_results");
+
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
+    Serial.println("lv_obj_add_flag");
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
+    Serial.println("lv_obj_clear_flag");
 
     // Check for new record
     bool newRecord = is_new_record(survivalCorrectPresses, currentSurvivalDurationMinutes);
+    Serial.println("newRecord");
     int currentRecord = get_survival_record(currentSurvivalDurationMinutes);
+    Serial.println("currentRecord");
 
     // Save record if needed
     if (newRecord)
     {
         save_survival_record(currentSurvivalDurationMinutes, survivalCorrectPresses);
+        Serial.println("save_survival_record");
     }
 
     char results_text[512];
@@ -592,11 +608,13 @@ static void display_survival_results()
     if (newRecord)
     {
         offset += snprintf(results_text + offset, sizeof(results_text) - offset, "НОВИЙ РЕКОРД!\n\n");
+        Serial.println("НОВИЙ РЕКОРД");
     }
 
     offset += snprintf(results_text + offset, sizeof(results_text) - offset,
                        "Результати Виживання:\n\nПравильних: %d\nВсього спроб: %d\n",
                        survivalCorrectPresses, survivalTotalPresses);
+    Serial.println("Результати Виживання");
 
     // Calculate game time
     unsigned long gameTimeMs = lv_tick_get() - survivalGameStartTime;
@@ -608,8 +626,11 @@ static void display_survival_results()
     int recordToShow = newRecord ? survivalCorrectPresses : currentRecord;
     offset += snprintf(results_text + offset, sizeof(results_text) - offset,
                        "Рекорд (%d хв): %d", currentSurvivalDurationMinutes, recordToShow);
+    Serial.println(results_text);
 
-    lv_label_set_text(results_label, results_text);
+    // lv_label_set_text(results_label, results_text);
+    lv_label_set_text(results_label, "РЕЗУЛЬТАТ");
+    Serial.println("lv_label_set_text");
 }
 
 static void create_game_over_menu()

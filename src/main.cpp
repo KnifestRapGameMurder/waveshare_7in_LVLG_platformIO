@@ -33,7 +33,6 @@ const uint32_t IDLE_TIMEOUT = 10000; // 10 seconds idle timeout
 uint32_t last_interaction_time = 0;
 Preferences preferences;
 
-
 // HardwareSerial uart_serial(2);
 
 UARTProtocol uart_protocol(&Serial);
@@ -121,7 +120,9 @@ static void app_timer_cb(lv_timer_t *timer)
             // Menu states don't need continuous updates
             break;
         }
+        // Serial.println("before unlock");
         lvgl_port_unlock(); // Unlock
+        // Serial.println("after unlock");
     }
 
     // 4. Handle UART communication with slave (LEDs and buttons)
@@ -129,12 +130,12 @@ static void app_timer_cb(lv_timer_t *timer)
     String rawMessage;
     if (uart_protocol.receiveMessage(rawMessage))
     {
-        if(uart_protocol.isCMDMessage(rawMessage))
+        if (uart_protocol.isCMDMessage(rawMessage))
         {
             String command, param1, param2;
-            if(uart_protocol.parseCMDMessage(rawMessage, command, param1, param2))
+            if (uart_protocol.parseCMDMessage(rawMessage, command, param1, param2))
             {
-                if(command == CMD_BUTTONS)
+                if (command == CMD_BUTTONS)
                 {
                     // Update button_state_cache from param1 (16-bit binary string)
                     uint16_t new_button_state = uart_protocol.binaryStringToUint16(param1);
@@ -161,6 +162,11 @@ static void app_timer_cb(lv_timer_t *timer)
     lvgl_port_unlock(); // Unlock
 
     last_time = now;
+}
+
+void lvgl_log_cb(const char *buf)
+{
+    Serial.printf("[LVGL] %s\n", buf);
 }
 
 void setup()
@@ -200,6 +206,7 @@ void setup()
     Serial.println("Плата ініціалізована з RGB конфігурацією без розривів!");
 
     Serial.println("Ініціалізація LVGL з повним оновленням...");
+    lv_log_register_print_cb(lvgl_log_cb);
     lvgl_port_init(board->getLCD(), board->getTouch());
 
     Serial.println("Створення UI з градієнтом без розривів...");
@@ -232,7 +239,15 @@ void setup()
     Serial.println("=== КОНФІГУРАЦІЯ БЕЗ РОЗРИВІВ ЗАВЕРШЕНА ===");
 }
 
+int last_loop_check_time = 0;
+
 void loop()
 {
+    int time = millis();
+    if (time > last_loop_check_time + 2000)
+    {
+        last_loop_check_time = time;
+        Serial.println(time);
+    }
     delay(5);
 }
