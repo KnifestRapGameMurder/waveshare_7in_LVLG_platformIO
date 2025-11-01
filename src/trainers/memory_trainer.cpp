@@ -201,8 +201,8 @@ void set_memory_trainer_state(MemoryTrainerState newState)
         break;
 
     case MT_STATE_GAME_OVER_MENU:
-        create_game_over_menu();
-        Serial.println("Mem: GAME_OVER_MENU state set, menu created");
+        display_results();
+        Serial.println("Mem: GAME_OVER_MENU state set, simple results displayed");
         break;
 
     default:
@@ -500,21 +500,7 @@ static void display_results()
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
-    char results_text[256];
-    if (current_sequence_length > MAX_SEQUENCE_LENGTH)
-    {
-        snprintf(results_text, sizeof(results_text),
-                 "Результати Пам'яті:\n\nТи переміг!\nМаксимальний рівень: %d",
-                 MAX_SEQUENCE_LENGTH);
-    }
-    else
-    {
-        snprintf(results_text, sizeof(results_text),
-                 "Результати Пам'яті:\n\nТвій рівень: %d",
-                 current_sequence_length - 1);
-    }
-
-    lv_label_set_text(results_label, results_text);
+    lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
 }
 
 static void create_game_over_menu()

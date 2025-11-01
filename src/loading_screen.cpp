@@ -214,14 +214,30 @@ void loading_screen_create(ScreenTransitionCallback_t transition_cb)
     // Also attach to the screen itself as a fallback
     lv_obj_add_event_cb(lv_scr_act(), transition_cb, LV_EVENT_CLICKED, NULL);
 
-    // Add main title
+    // Add main title with shadow
+    // Create shadow first (behind the main text)
+    lv_obj_t *main_shadow = lv_label_create(lv_scr_act());
+    lv_label_set_text(main_shadow, "НЕЙРО");
+    lv_obj_set_style_text_font(main_shadow, Font1, 0);
+    lv_obj_set_style_text_color(main_shadow, lv_color_black(), 0); // Black shadow for better contrast
+    lv_obj_align(main_shadow, LV_ALIGN_CENTER, 4, -76); // Bigger shadow offset: +4 right, +4 up
+
+    // Create main title (on top of shadow)
     main_label = lv_label_create(lv_scr_act());
     lv_label_set_text(main_label, "НЕЙРО");
     lv_obj_set_style_text_font(main_label, Font1, 0);
     lv_obj_set_style_text_color(main_label, lv_color_white(), 0);
     lv_obj_align(main_label, LV_ALIGN_CENTER, 0, -80);
 
-    // Add subtitle
+    // Add subtitle with shadow
+    // Create shadow first
+    lv_obj_t *sub_shadow = lv_label_create(lv_scr_act());
+    lv_label_set_text(sub_shadow, "БЛОК");
+    lv_obj_set_style_text_font(sub_shadow, Font1, 0);
+    lv_obj_set_style_text_color(sub_shadow, lv_color_black(), 0); // Black shadow for better contrast
+    lv_obj_align_to(sub_shadow, main_label, LV_ALIGN_OUT_BOTTOM_MID, 4, 4); // Bigger shadow offset
+
+    // Create subtitle (on top of shadow)
     sub_label_1 = lv_label_create(lv_scr_act());
     lv_label_set_text(sub_label_1, "БЛОК");
     lv_obj_set_style_text_font(sub_label_1, Font1, 0);

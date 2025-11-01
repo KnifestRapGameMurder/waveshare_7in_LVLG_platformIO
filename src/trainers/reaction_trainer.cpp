@@ -318,21 +318,7 @@ static void display_time_trial_results()
         }
     }
 
-    char results_text[256];
-    if (validRounds > 0)
-    {
-        snprintf(results_text, sizeof(results_text),
-                 "Результати Часу Реакції:\n\nСередній час: %lu мс\nТаймаутів: %d",
-                 totalReactionTime / validRounds, TOTAL_TT_ROUNDS - validRounds);
-    }
-    else
-    {
-        snprintf(results_text, sizeof(results_text),
-                 "Результати Часу Реакції:\n\nНемає успішних спроб.");
-    }
-
     lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
-    // lv_label_set_text(results_label, results_text);
 }
 
 // === SURVIVAL MODE ===
@@ -432,7 +418,7 @@ void set_survival_time_state(SurvivalTimeState newState)
         break;
 
     case ST_STATE_GAME_OVER_MENU:
-        create_game_over_menu();
+        // Results already displayed, no additional buttons
         break;
 
     default:
@@ -602,35 +588,8 @@ static void display_survival_results()
         Serial.println("save_survival_record");
     }
 
-    char results_text[512];
-    int offset = 0;
-
-    if (newRecord)
-    {
-        offset += snprintf(results_text + offset, sizeof(results_text) - offset, "НОВИЙ РЕКОРД!\n\n");
-        Serial.println("НОВИЙ РЕКОРД");
-    }
-
-    offset += snprintf(results_text + offset, sizeof(results_text) - offset,
-                       "Результати Виживання:\n\nПравильних: %d\nВсього спроб: %d\n",
-                       survivalCorrectPresses, survivalTotalPresses);
-    Serial.println("Результати Виживання");
-
-    // Calculate game time
-    unsigned long gameTimeMs = lv_tick_get() - survivalGameStartTime;
-    unsigned long gameTimeSec = gameTimeMs / 1000;
-    offset += snprintf(results_text + offset, sizeof(results_text) - offset,
-                       "Гра тривала: %lu сек\n", gameTimeSec);
-
-    // Show current record
-    int recordToShow = newRecord ? survivalCorrectPresses : currentRecord;
-    offset += snprintf(results_text + offset, sizeof(results_text) - offset,
-                       "Рекорд (%d хв): %d", currentSurvivalDurationMinutes, recordToShow);
-    Serial.println(results_text);
-
-    // lv_label_set_text(results_label, results_text);
-    lv_label_set_text(results_label, "РЕЗУЛЬТАТ");
-    Serial.println("lv_label_set_text");
+    lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
+    Serial.println("Results set to simple text");
 }
 
 static void create_game_over_menu()

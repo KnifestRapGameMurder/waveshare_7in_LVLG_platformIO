@@ -200,7 +200,7 @@ void set_accuracy_trainer_state(AccuracyTrainerState newState)
         break;
 
     case AT_STATE_GAME_OVER_MENU:
-        create_game_over_menu();
+        display_results();
         break;
 
     default:
@@ -466,12 +466,6 @@ static void display_results()
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
-    float accuracy = (total_rounds > 0) ? ((float)correct_presses / total_rounds * 100.0f) : 0.0f;
-    char results_text[256];
-    snprintf(results_text, sizeof(results_text),
-             "Результати Влучності:\n\nПравильних: %d\nВсього раундів: %d\nВлучність: %.1f%%",
-             correct_presses, total_rounds, accuracy);
-    // lv_label_set_text(results_label, results_text);
     lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
 }
 

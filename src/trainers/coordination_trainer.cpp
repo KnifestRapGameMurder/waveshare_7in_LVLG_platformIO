@@ -216,7 +216,7 @@ void set_coordination_trainer_state(CoordinationTrainerState newState)
         break;
 
     case CT_STATE_GAME_OVER_MENU:
-        create_game_over_menu();
+        display_results();
         break;
 
     default:
@@ -394,17 +394,7 @@ static void display_results()
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
-    char results_text[256];
-    snprintf(results_text, sizeof(results_text),
-             "Результати Координації:\n\nДосягнутий рівень: %d\nПройдених рівнів: %d\nВсього спроб: %d",
-             current_level, correct_coordination_presses, total_coordination_rounds);
-
-    if (current_level == NUM_LEDS)
-    {
-        strcat(results_text, "\n\nІДЕАЛЬНИЙ РЕЗУЛЬТАТ!");
-    }
-
-    lv_label_set_text(results_label, results_text);
+    lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
 }
 
 static void create_game_over_menu()
