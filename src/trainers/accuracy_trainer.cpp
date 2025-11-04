@@ -6,18 +6,28 @@
 #include "fonts.h"
 
 // === Game Constants ===
-const int GET_READY_DURATION = 3000;       // 3 seconds
-const int ACCURACY_TIMEOUT = 5000;         // 5 seconds to hit the target
-const int MAX_ACCURACY_MISSES = 3;         // Max misses before game over
-const int TOTAL_ACCURACY_ROUNDS = 10;      // Rounds per game
-const int FEEDBACK_DURATION = 260;         // ms for success/fail feedback effect
-const int GAME_OVER_MSG_DURATION = 1000;   // ms to show "Game Over"
-const int RESULTS_DISPLAY_DURATION = 5000; // ms to show results
+const int GET_READY_DURATION = 3000;           // 3 seconds
+const int ACCURACY_TIMEOUT_EASY = 10000;       // 10 seconds for EASY
+const int ACCURACY_TIMEOUT_MEDIUM = 15000;     // 15 seconds for MEDIUM (більше часу)
+const int ACCURACY_TIMEOUT_HARD = 10000;       // 10 seconds for HARD
+const int MAX_ACCURACY_MISSES = 5;             // Max misses before game over
+const int MIN_ACCURACY_ROUNDS = 5;             // Minimum rounds per game
+const int MAX_ACCURACY_ROUNDS = 10;            // Maximum rounds per game (не для MEDIUM)
+const int FEEDBACK_DURATION = 260;             // ms for success/fail feedback effect
+const int GAME_OVER_MSG_DURATION = 1000;       // ms to show "Game Over"
+const int RESULTS_DISPLAY_DURATION = 5000;     // ms to show results
 
-// Speed constants
+// Speed constants for different modes
 const int ACCURACY_CHASER_SPEED_EASY = 200;
 const int ACCURACY_CHASER_SPEED_MEDIUM = 150;
 const int ACCURACY_CHASER_SPEED_HARD = 100;
+
+// New mode constants
+const int MOVING_TARGET_INTERVAL = 900;    // ms between target moves (Medium)
+const int FLASH_TARGET_ON_TIME = 400;      // ms target is visible (Hard)
+const int FLASH_TARGET_OFF_TIME = 600;     // ms target is hidden (Hard)
+const int DOUBLE_TARGET_TIMEOUT = 4000;    // ms for double target mode
+const int SEQUENCE_SHOW_TIME = 800;        // ms to show each target in sequence
 
 // === Game State Variables ===
 static AccuracyTrainerState current_trainer_state = AT_STATE_IDLE;
@@ -37,6 +47,13 @@ static int chaser_position = 0;
 static bool chaser_direction = true; // true = right, false = left
 static unsigned long last_chaser_move = 0;
 
+// === Moving Target (Medium Mode) Variables ===
+static unsigned long last_target_move = 0;
+
+// === Flash Target (Hard Mode) Variables ===
+static bool flash_visible = true;
+static unsigned long last_flash_toggle = 0;
+
 // === UI Elements ===
 static lv_obj_t *accuracy_screen = NULL;
 static lv_obj_t *hud_label = NULL;
@@ -51,6 +68,8 @@ static void update_hud();
 static void show_feedback_effect();
 static void check_button_presses();
 static void move_chaser_easy();
+static void move_target_medium();
+static void flash_target_hard();
 static void display_results();
 static void create_game_over_menu();
 static void game_over_menu_event_handler(lv_event_t *e);
@@ -145,7 +164,40 @@ void set_accuracy_trainer_state(AccuracyTrainerState newState)
 
         if (current_difficulty == ACCURACY_EASY)
         {
+            // ЛЕГКИЙ: Мигаюча ціль (було HARD)
+            lv_label_set_text(info_label, "Влуч у спалах!");
+            
+            target_led = random(NUM_LEDS);
+            prev_target_led = target_led;
+            flash_visible = true;
+            
+            strip_Clear();
+            strip_SetPixelColor(target_led, RgbColor(255, 0, 255)); // Magenta
+            strip_Show();
+            
+            last_flash_toggle = lv_tick_get();
+            round_start_time = lv_tick_get();
+        }
+        else if (current_difficulty == ACCURACY_MEDIUM)
+        {
+            // СЕРЕДНІЙ: Рухома жовта ціль (без обмежень)
+            lv_label_set_text(info_label, "Спіймай мету!");
+            
+            target_led = random(NUM_LEDS);
+            prev_target_led = target_led;
+            
+            strip_Clear();
+            strip_SetPixelColor(target_led, RgbColor(255, 255, 0)); // Yellow
+            strip_Show();
+            
+            last_target_move = lv_tick_get();
+            round_start_time = lv_tick_get();
+        }
+        else // ACCURACY_HARD
+        {
+            // ВАЖКИЙ: Статична синя ціль + жовтий chaser (було EASY)
             lv_label_set_text(info_label, "Спіймай зв'язку!");
+            
             // Set static blue target
             int tries = 0;
             do
@@ -167,22 +219,11 @@ void set_accuracy_trainer_state(AccuracyTrainerState newState)
             last_chaser_move = lv_tick_get();
             round_start_time = lv_tick_get();
         }
-        else
-        {
-            lv_label_set_text(info_label, "Спіймай мету!");
-            chaser_position = random(NUM_LEDS);
-            chaser_direction = (esp_random() & 1);
-            strip_Clear();
-            strip_SetPixelColor(chaser_position, RgbColor(255, 255, 0)); // Yellow for target
-            strip_Show();
-            last_chaser_move = lv_tick_get();
-            round_start_time = lv_tick_get();
-        }
         break;
     }
 
     case AT_STATE_WAIT_FOR_PRESS:
-        round_start_time = lv_tick_get();
+        // Таймер вже встановлений в AT_STATE_SHOW_TARGET
         break;
 
     case AT_STATE_FEEDBACK:
@@ -193,14 +234,19 @@ void set_accuracy_trainer_state(AccuracyTrainerState newState)
         lv_label_set_text(info_label, "Гру завершено!");
         lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         strip_Clear();
+        strip_Show();
         break;
 
     case AT_STATE_SHOW_RESULTS:
         display_results();
+        strip_Clear();
+        strip_Show();
         break;
 
     case AT_STATE_GAME_OVER_MENU:
         display_results();
+        strip_Clear();
+        strip_Show();
         break;
 
     default:
@@ -243,31 +289,63 @@ void check_button_presses()
 
             if (current_difficulty == ACCURACY_EASY)
             {
-                if (i == target_led && chaser_position == target_led)
+                // ЛЕГКИЙ: Влучити коли ціль видима (мигає)
+                if (i == target_led && flash_visible)
                 {
                     correct_presses++;
-                    Serial.printf("Acc(Easy): Perfect hit! Button: %d\n", i);
+                    Serial.printf("Acc(Easy): Hit! Button: %d\n", i);
                     feedback_success = true;
                 }
                 else
                 {
                     misses++;
-                    Serial.printf("Acc(Easy): Miss! Button: %d, Target: %d, Chaser: %d\n", i, target_led, chaser_position);
+                    Serial.printf("Acc(Easy): Miss! Button: %d, Target: %d, Visible: %d\n", i, target_led, flash_visible);
                     feedback_success = false;
                 }
             }
-            else
+            else if (current_difficulty == ACCURACY_MEDIUM)
             {
-                if (i == chaser_position)
+                // СЕРЕДНІЙ: Влучити в рухому ціль
+                if (i == target_led)
                 {
                     correct_presses++;
-                    Serial.printf("Acc: Hit! Button: %d\n", i);
+                    Serial.printf("Acc(Medium): Hit! Button: %d\n", i);
                     feedback_success = true;
                 }
                 else
                 {
                     misses++;
-                    Serial.printf("Acc: Miss! Button: %d, Target: %d\n", i, chaser_position);
+                    Serial.printf("Acc(Medium): Miss! Button: %d, Target: %d\n", i, target_led);
+                    feedback_success = false;
+                }
+            }
+            else // ACCURACY_HARD
+            {
+                // ВАЖКИЙ: Влучити в будь-який LED змійки (3 LED: центр і сусіди)
+                bool hit_chaser = false;
+                
+                // Перевірка чи кнопка є частиною змійки (центр або ±1)
+                if (i == chaser_position || 
+                    i == chaser_position - 1 || 
+                    i == chaser_position + 1)
+                {
+                    // Додаткова перевірка чи це також ціль
+                    if (i == target_led)
+                    {
+                        hit_chaser = true;
+                    }
+                }
+                
+                if (hit_chaser)
+                {
+                    correct_presses++;
+                    Serial.printf("Acc(Hard): Hit chaser! Button: %d, Chaser: %d\n", i, chaser_position);
+                    feedback_success = true;
+                }
+                else
+                {
+                    misses++;
+                    Serial.printf("Acc(Hard): Miss! Button: %d, Target: %d, Chaser: %d\n", i, target_led, chaser_position);
                     feedback_success = false;
                 }
             }
@@ -279,8 +357,16 @@ void check_button_presses()
 
     last_button_state = current_button_state;
 
-    // Check for timeout
-    if (lv_tick_get() - round_start_time > ACCURACY_TIMEOUT)
+    // Check for timeout (різний для кожного режиму)
+    int current_timeout;
+    if (current_difficulty == ACCURACY_EASY)
+        current_timeout = ACCURACY_TIMEOUT_EASY;
+    else if (current_difficulty == ACCURACY_MEDIUM)
+        current_timeout = ACCURACY_TIMEOUT_MEDIUM;
+    else
+        current_timeout = ACCURACY_TIMEOUT_HARD;
+
+    if (lv_tick_get() - round_start_time > (unsigned long)current_timeout)
     {
         Serial.println("Acc: Timeout");
         total_rounds++;
@@ -353,6 +439,55 @@ static void move_chaser_easy()
     }
 }
 
+static void move_target_medium()
+{
+    if (current_trainer_state != AT_STATE_SHOW_TARGET && current_trainer_state != AT_STATE_WAIT_FOR_PRESS)
+        return;
+
+    unsigned long now = lv_tick_get();
+    if (now - last_target_move >= MOVING_TARGET_INTERVAL)
+    {
+        // Move target to new random position
+        int old_target = target_led;
+        int tries = 0;
+        do
+        {
+            target_led = random(NUM_LEDS);
+            tries++;
+        } while (target_led == old_target && tries < 5);
+
+        // Update display
+        strip_Clear();
+        strip_SetPixelColor(target_led, RgbColor(255, 255, 0)); // Yellow
+        strip_Show();
+
+        last_target_move = now;
+    }
+}
+
+static void flash_target_hard()
+{
+    if (current_trainer_state != AT_STATE_SHOW_TARGET && current_trainer_state != AT_STATE_WAIT_FOR_PRESS)
+        return;
+
+    unsigned long now = lv_tick_get();
+    unsigned long flash_interval = flash_visible ? FLASH_TARGET_ON_TIME : FLASH_TARGET_OFF_TIME;
+
+    if (now - last_flash_toggle >= flash_interval)
+    {
+        flash_visible = !flash_visible;
+
+        strip_Clear();
+        if (flash_visible)
+        {
+            strip_SetPixelColor(target_led, RgbColor(255, 0, 255)); // Magenta
+        }
+        strip_Show();
+
+        last_flash_toggle = now;
+    }
+}
+
 void run_accuracy_trainer()
 {
     switch (current_trainer_state)
@@ -367,24 +502,35 @@ void run_accuracy_trainer()
     case AT_STATE_SHOW_TARGET:
         if (current_difficulty == ACCURACY_EASY)
         {
+            flash_target_hard(); // EASY = мигаюча ціль
+        }
+        else if (current_difficulty == ACCURACY_MEDIUM)
+        {
+            move_target_medium(); // MEDIUM = рухома ціль
+        }
+        else if (current_difficulty == ACCURACY_HARD)
+        {
             if (lv_tick_get() - state_timer > 50)
             {
                 set_accuracy_trainer_state(AT_STATE_WAIT_FOR_PRESS);
             }
-            move_chaser_easy();
-            check_button_presses();
+            move_chaser_easy(); // HARD = chaser
         }
-        else
-        {
-            // For medium/hard, implement chaser movement if needed
-            check_button_presses();
-        }
+        check_button_presses();
         break;
 
     case AT_STATE_WAIT_FOR_PRESS:
         if (current_difficulty == ACCURACY_EASY)
         {
-            move_chaser_easy();
+            flash_target_hard(); // EASY = мигаюча ціль
+        }
+        else if (current_difficulty == ACCURACY_MEDIUM)
+        {
+            move_target_medium(); // MEDIUM = рухома ціль
+        }
+        else if (current_difficulty == ACCURACY_HARD)
+        {
+            move_chaser_easy(); // HARD = chaser
         }
         check_button_presses();
         break;
@@ -412,7 +558,23 @@ void run_accuracy_trainer()
 
             if (feedback_success)
             {
-                if (total_rounds >= TOTAL_ACCURACY_ROUNDS || misses >= MAX_ACCURACY_MISSES)
+                // Логіка завершення залежить від складності
+                bool should_end = false;
+                
+                if (current_difficulty == ACCURACY_MEDIUM)
+                {
+                    // СЕРЕДНІЙ: Гра до повної поразки (тільки по промахах)
+                    should_end = (total_rounds >= MIN_ACCURACY_ROUNDS && misses >= MAX_ACCURACY_MISSES);
+                }
+                else
+                {
+                    // ЛЕГКИЙ/ВАЖКИЙ: Обмеження по раундах
+                    bool max_rounds_reached = (total_rounds >= MAX_ACCURACY_ROUNDS);
+                    bool min_rounds_with_max_misses = (total_rounds >= MIN_ACCURACY_ROUNDS && misses >= MAX_ACCURACY_MISSES);
+                    should_end = (max_rounds_reached || min_rounds_with_max_misses);
+                }
+                
+                if (should_end)
                 {
                     set_accuracy_trainer_state(AT_STATE_GAME_OVER);
                 }
@@ -423,7 +585,10 @@ void run_accuracy_trainer()
             }
             else
             {
-                if (misses >= MAX_ACCURACY_MISSES)
+                // Після промаху - перевірка чи досягнуто ліміту
+                bool min_rounds_with_max_misses = (total_rounds >= MIN_ACCURACY_ROUNDS && misses >= MAX_ACCURACY_MISSES);
+                
+                if (min_rounds_with_max_misses)
                 {
                     set_accuracy_trainer_state(AT_STATE_GAME_OVER);
                 }
@@ -438,6 +603,8 @@ void run_accuracy_trainer()
 
     case AT_STATE_GAME_OVER:
         Serial.printf("AT_STATE_GAME_OVER: elapsed %lu ms\n", lv_tick_get() - state_timer);
+        strip_Clear();
+        strip_Show();
         if (lv_tick_get() - state_timer > GAME_OVER_MSG_DURATION)
         {
             Serial.println("Transitioning to AT_STATE_SHOW_RESULTS");
@@ -446,6 +613,8 @@ void run_accuracy_trainer()
         break;
 
     case AT_STATE_SHOW_RESULTS:
+        strip_Clear();
+        strip_Show();
         if (lv_tick_get() - state_timer > RESULTS_DISPLAY_DURATION)
         {
             set_accuracy_trainer_state(AT_STATE_GAME_OVER_MENU);
@@ -453,6 +622,8 @@ void run_accuracy_trainer()
         break;
 
     case AT_STATE_GAME_OVER_MENU:
+        strip_Clear();
+        strip_Show();
         // Wait for user input on buttons
         break;
 

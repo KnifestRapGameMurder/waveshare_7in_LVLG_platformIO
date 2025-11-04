@@ -57,7 +57,9 @@ static void check_button_presses_survival();
 static void display_time_trial_results();
 static void display_survival_results();
 static void create_game_over_menu();
+static void create_time_trial_game_over_menu();
 static void game_over_menu_event_handler(lv_event_t *e);
+static void time_trial_menu_event_handler(lv_event_t *e);
 static void back_to_menu_event_handler(lv_event_t *e);
 static int get_random_button_avoiding_last(int lastButton);
 
@@ -175,15 +177,15 @@ void set_time_trial_state(TimeTrialState newState)
         break;
 
     case TT_STATE_GAME_OVER:
-        lv_label_set_text(info_label, "Гра Завершена!");
-        timeTrialTimer = lv_tick_get() + 3000;
+        // This state is no longer used - results shown directly in SHOW_RESULT
         break;
 
     case TT_STATE_GAME_OVER_MENU:
-        display_time_trial_results();
+        // This state is no longer used
         break;
 
     case TT_STATE_WAIT_FOR_EXIT:
+        // Just wait for menu button presses
         break;
 
     default:
@@ -217,7 +219,7 @@ static void check_button_presses_time_trial()
             if (i == targetButton)
             {
                 unsigned long rT = lv_tick_get() - reactionStart;
-                Serial.printf("RT: %lu\n", rT);
+                Serial.printf("RT Round %d: %lu ms\n", currentTTRound, rT);
                 reactionTimes[currentTTRound] = rT;
                 strip_SetPixelColor(i, RgbColor(0, 255, 0)); // Green feedback
                 strip_Show();
@@ -225,13 +227,14 @@ static void check_button_presses_time_trial()
             }
             else
             {
-                Serial.println("Wrong btn!");
+                Serial.printf("Round %d: Wrong button!\n", currentTTRound);
                 strip_SetPixelColor(i, RgbColor(255, 0, 0)); // Red feedback
                 strip_Show();
                 delay(100);
                 reactionTimes[currentTTRound] = 0;
             }
 
+            Serial.printf("Round %d complete, transitioning to SHOW_RESULT\n", currentTTRound);
             set_time_trial_state(TT_STATE_SHOW_RESULT);
             break;
         }
@@ -270,13 +273,21 @@ void run_time_trial()
         if (lv_tick_get() > timeTrialTimer)
         {
             currentTTRound++;
+            Serial.printf("TT_STATE_SHOW_RESULT: Round completed. currentTTRound now = %d, TOTAL = %d\n", 
+                         currentTTRound, TOTAL_TT_ROUNDS);
+            
             if (currentTTRound < TOTAL_TT_ROUNDS)
             {
+                Serial.println("TT_STATE_SHOW_RESULT: More rounds to go, transitioning to NEXT_ROUND_DELAY");
                 set_time_trial_state(TT_STATE_NEXT_ROUND_DELAY);
             }
             else
             {
-                set_time_trial_state(TT_STATE_GAME_OVER);
+                Serial.println("TT_STATE_SHOW_RESULT: All rounds done! Showing results and menu immediately");
+                display_time_trial_results();
+                delay(100); // Small delay to ensure display updates
+                create_time_trial_game_over_menu();
+                set_time_trial_state(TT_STATE_WAIT_FOR_EXIT);
             }
         }
         break;
@@ -287,14 +298,18 @@ void run_time_trial()
         break;
 
     case TT_STATE_GAME_OVER:
-        if (lv_tick_get() > timeTrialTimer)
-            set_time_trial_state(TT_STATE_GAME_OVER_MENU);
-        break;
-
-    case TT_STATE_GAME_OVER_MENU:
+        // This state is no longer used - we show results directly in SHOW_RESULT
         break;
 
     case TT_STATE_WAIT_FOR_EXIT:
+        // Just wait for user to press menu buttons
+        break;
+
+    case TT_STATE_SHOW_RESULTS:
+        // Not used anymore
+        break;
+
+    case TT_STATE_GAME_OVER_MENU:
         break;
 
     default:
@@ -304,13 +319,21 @@ void run_time_trial()
 
 static void display_time_trial_results()
 {
+    Serial.println("display_time_trial_results START");
+    
+    // Clear LEDs first
+    strip_Clear();
+    strip_Show();
+    
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(round_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
     unsigned long totalReactionTime = 0;
     int validRounds = 0;
     for (int i = 0; i < TOTAL_TT_ROUNDS; i++)
     {
+        Serial.printf("Round %d: time = %lu ms\n", i, reactionTimes[i]);
         if (reactionTimes[i] > 0 && reactionTimes[i] <= TIMEOUT_REACTION)
         {
             totalReactionTime += reactionTimes[i];
@@ -318,7 +341,27 @@ static void display_time_trial_results()
         }
     }
 
+    Serial.printf("validRounds: %d, totalReactionTime: %lu\n", validRounds, totalReactionTime);
+
+    char results_text[128];
+    if (validRounds > 0)
+    {
+        unsigned long averageReactionTime = totalReactionTime / validRounds;
+        Serial.printf("averageReactionTime: %lu ms\n", averageReactionTime);
+        snprintf(results_text, sizeof(results_text), 
+                 "РЕЗУЛЬТАТИ\n\nСередній час:\n%lu мс", 
+                 averageReactionTime);
+    }
+    else
+    {
+        Serial.println("No valid rounds");
+        snprintf(results_text, sizeof(results_text), "РЕЗУЛЬТАТИ\n\nНемає даних");
+    }
+    
+    Serial.printf("Setting text: %s\n", results_text);
+    // lv_label_set_text(results_label, results_text);
     lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
+    Serial.println("display_time_trial_results END");
 }
 
 // === SURVIVAL MODE ===
@@ -627,6 +670,42 @@ static void create_game_over_menu()
     lv_obj_add_event_cb(exit_btn, game_over_menu_event_handler, LV_EVENT_CLICKED, (void *)1);
 }
 
+static void create_time_trial_game_over_menu()
+{
+    // Hide other labels
+    lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(round_label, LV_OBJ_FLAG_HIDDEN);
+
+    // Create play again button
+    play_again_btn = lv_btn_create(reaction_screen);
+    lv_obj_set_size(play_again_btn, 300, 80);
+    lv_obj_align(play_again_btn, LV_ALIGN_CENTER, 0, -50);
+    lv_obj_set_style_bg_color(play_again_btn, lv_color_hex(0x00FF00), 0);
+    lv_obj_set_style_bg_color(play_again_btn, lv_color_hex(0x00AA00), LV_STATE_PRESSED);
+
+    lv_obj_t *play_label = lv_label_create(play_again_btn);
+    lv_label_set_text(play_label, "Грати Знову");
+    lv_obj_set_style_text_font(play_label, Font2, 0);
+    lv_obj_center(play_label);
+
+    lv_obj_add_event_cb(play_again_btn, time_trial_menu_event_handler, LV_EVENT_CLICKED, (void *)0);
+
+    // Create exit button
+    exit_btn = lv_btn_create(reaction_screen);
+    lv_obj_set_size(exit_btn, 300, 80);
+    lv_obj_align(exit_btn, LV_ALIGN_CENTER, 0, 50);
+    lv_obj_set_style_bg_color(exit_btn, lv_color_hex(0xFF0000), 0);
+    lv_obj_set_style_bg_color(exit_btn, lv_color_hex(0xAA0000), LV_STATE_PRESSED);
+
+    lv_obj_t *exit_label = lv_label_create(exit_btn);
+    lv_label_set_text(exit_label, "Вихід");
+    lv_obj_set_style_text_font(exit_label, Font2, 0);
+    lv_obj_center(exit_label);
+
+    lv_obj_add_event_cb(exit_btn, time_trial_menu_event_handler, LV_EVENT_CLICKED, (void *)1);
+}
+
 static void game_over_menu_event_handler(lv_event_t *e)
 {
     int action = (int)(intptr_t)lv_event_get_user_data(e);
@@ -641,6 +720,34 @@ static void game_over_menu_event_handler(lv_event_t *e)
         Serial.println("Reaction Menu: Exit");
         current_state = STATE_REACTION_SUBMENU;
         set_survival_time_state(ST_STATE_IDLE);
+        create_reaction_submenu();
+    }
+}
+
+static void time_trial_menu_event_handler(lv_event_t *e)
+{
+    int action = (int)(intptr_t)lv_event_get_user_data(e);
+
+    // Delete menu buttons first
+    if (play_again_btn) {
+        lv_obj_del(play_again_btn);
+        play_again_btn = NULL;
+    }
+    if (exit_btn) {
+        lv_obj_del(exit_btn);
+        exit_btn = NULL;
+    }
+
+    if (action == 0) // Play again
+    {
+        Serial.println("Time Trial Menu: Play Again");
+        set_time_trial_state(TT_STATE_GET_READY);
+    }
+    else if (action == 1) // Exit
+    {
+        Serial.println("Time Trial Menu: Exit");
+        current_state = STATE_REACTION_SUBMENU;
+        set_time_trial_state(TT_STATE_IDLE);
         create_reaction_submenu();
     }
 }

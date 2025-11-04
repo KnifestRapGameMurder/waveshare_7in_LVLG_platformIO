@@ -179,7 +179,7 @@ void create_main_menu()
 
     // Create 4 trainer buttons taking all screen space in 2x2 grid
     const char *trainer_names[] = {
-        "ТОЧНІСТЬ",    // Accuracy Trainer
+        "ВЛУЧНІСТЬ",   // Accuracy Trainer
         "РЕАКЦІЯ",     // Reaction Trainer
         "ПАМ'ЯТЬ",     // Memory Trainer
         "КООРДИНАЦІЯ"  // Coordination Trainer
@@ -295,7 +295,7 @@ void create_accuracy_difficulty_submenu()
 
     // Title
     lv_obj_t *title = lv_label_create(lv_scr_act());
-    lv_label_set_text(title, "ВИБЕРІТЬ СКЛАДНІСТЬ");
+    lv_label_set_text(title, "РІВЕНЬ СКЛАДНОСТІ");
     lv_obj_set_style_text_font(title, Font2, 0);
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
@@ -303,12 +303,12 @@ void create_accuracy_difficulty_submenu()
     // Easy button
     lv_obj_t *easy_btn = lv_btn_create(lv_scr_act());
     lv_obj_set_size(easy_btn, 300, 80);
-    lv_obj_align(easy_btn, LV_ALIGN_CENTER, 0, -100);
+    lv_obj_align(easy_btn, LV_ALIGN_CENTER, 0, -120);
     lv_obj_set_style_bg_color(easy_btn, lv_color_hex(0x00FF00), 0);
     lv_obj_set_style_bg_color(easy_btn, lv_color_hex(0x00AA00), LV_STATE_PRESSED);
 
     lv_obj_t *easy_label = lv_label_create(easy_btn);
-    lv_label_set_text(easy_label, "ЛЕГКО");
+    lv_label_set_text(easy_label, "ЛЕГКИЙ");
     lv_obj_set_style_text_font(easy_label, Font2, 0);
     lv_obj_center(easy_label);
 
@@ -317,12 +317,12 @@ void create_accuracy_difficulty_submenu()
     // Medium button
     lv_obj_t *medium_btn = lv_btn_create(lv_scr_act());
     lv_obj_set_size(medium_btn, 300, 80);
-    lv_obj_align(medium_btn, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(medium_btn, LV_ALIGN_CENTER, 0, -20);
     lv_obj_set_style_bg_color(medium_btn, lv_color_hex(0xFFFF00), 0);
     lv_obj_set_style_bg_color(medium_btn, lv_color_hex(0xAAAA00), LV_STATE_PRESSED);
 
     lv_obj_t *medium_label = lv_label_create(medium_btn);
-    lv_label_set_text(medium_label, "СЕРЕДНЄ");
+    lv_label_set_text(medium_label, "СЕРЕДНІЙ");
     lv_obj_set_style_text_font(medium_label, Font2, 0);
     lv_obj_center(medium_label);
 
@@ -331,12 +331,12 @@ void create_accuracy_difficulty_submenu()
     // Hard button
     lv_obj_t *hard_btn = lv_btn_create(lv_scr_act());
     lv_obj_set_size(hard_btn, 300, 80);
-    lv_obj_align(hard_btn, LV_ALIGN_CENTER, 0, 100);
+    lv_obj_align(hard_btn, LV_ALIGN_CENTER, 0, 80);
     lv_obj_set_style_bg_color(hard_btn, lv_color_hex(0xFF0000), 0);
     lv_obj_set_style_bg_color(hard_btn, lv_color_hex(0xAA0000), LV_STATE_PRESSED);
 
     lv_obj_t *hard_label = lv_label_create(hard_btn);
-    lv_label_set_text(hard_label, "ВАЖКО");
+    lv_label_set_text(hard_label, "ВАЖКИЙ");
     lv_obj_set_style_text_font(hard_label, Font2, 0);
     lv_obj_center(hard_label);
 
@@ -345,7 +345,7 @@ void create_accuracy_difficulty_submenu()
     // Back button
     back_button = lv_btn_create(lv_scr_act());
     lv_obj_set_size(back_button, 200, 80);
-    lv_obj_align(back_button, LV_ALIGN_BOTTOM_MID, 0, -30);
+    lv_obj_align(back_button, LV_ALIGN_BOTTOM_MID, 0, -20);
     lv_obj_set_style_bg_color(back_button, lv_color_hex(0x444444), 0);
     lv_obj_set_style_bg_color(back_button, lv_color_hex(0x666666), LV_STATE_PRESSED);
     lv_obj_set_style_border_color(back_button, lv_color_white(), 0);
@@ -445,7 +445,7 @@ void create_coordination_submenu()
 
     // Title
     lv_obj_t *title = lv_label_create(lv_scr_act());
-    lv_label_set_text(title, "ВИБЕРІТЬ СКЛАДНІСТЬ");
+    lv_label_set_text(title, "РІВЕНЬ СКЛАДНОСТІ");
     lv_obj_set_style_text_font(title, Font2, 0);
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
@@ -453,12 +453,12 @@ void create_coordination_submenu()
     // Easy button
     lv_obj_t *easy_btn = lv_btn_create(lv_scr_act());
     lv_obj_set_size(easy_btn, 300, 80);
-    lv_obj_align(easy_btn, LV_ALIGN_CENTER, 0, -50);
+    lv_obj_align(easy_btn, LV_ALIGN_CENTER, 0, -70);
     lv_obj_set_style_bg_color(easy_btn, lv_color_hex(0x00FF00), 0);
     lv_obj_set_style_bg_color(easy_btn, lv_color_hex(0x00AA00), LV_STATE_PRESSED);
 
     lv_obj_t *easy_label = lv_label_create(easy_btn);
-    lv_label_set_text(easy_label, "ЛЕГКО");
+    lv_label_set_text(easy_label, "ЛЕГКИЙ");
     lv_obj_set_style_text_font(easy_label, Font2, 0);
     lv_obj_center(easy_label);
 
@@ -467,12 +467,12 @@ void create_coordination_submenu()
     // Hard button
     lv_obj_t *hard_btn = lv_btn_create(lv_scr_act());
     lv_obj_set_size(hard_btn, 300, 80);
-    lv_obj_align(hard_btn, LV_ALIGN_CENTER, 0, 50);
+    lv_obj_align(hard_btn, LV_ALIGN_CENTER, 0, 30);
     lv_obj_set_style_bg_color(hard_btn, lv_color_hex(0xFF0000), 0);
     lv_obj_set_style_bg_color(hard_btn, lv_color_hex(0xAA0000), LV_STATE_PRESSED);
 
     lv_obj_t *hard_label = lv_label_create(hard_btn);
-    lv_label_set_text(hard_label, "ВАЖКО");
+    lv_label_set_text(hard_label, "ВАЖКИЙ");
     lv_obj_set_style_text_font(hard_label, Font2, 0);
     lv_obj_center(hard_label);
 
@@ -481,7 +481,7 @@ void create_coordination_submenu()
     // Back button
     back_button = lv_btn_create(lv_scr_act());
     lv_obj_set_size(back_button, 200, 80);
-    lv_obj_align(back_button, LV_ALIGN_BOTTOM_MID, 0, -30);
+    lv_obj_align(back_button, LV_ALIGN_BOTTOM_MID, 0, -20);
     lv_obj_set_style_bg_color(back_button, lv_color_hex(0x444444), 0);
     lv_obj_set_style_bg_color(back_button, lv_color_hex(0x666666), LV_STATE_PRESSED);
     lv_obj_set_style_border_color(back_button, lv_color_white(), 0);
