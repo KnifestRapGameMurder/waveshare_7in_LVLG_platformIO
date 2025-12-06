@@ -571,3 +571,55 @@ void create_dark_background()
     lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a1a), 0);
     lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
 }
+
+TrainerScreenElements create_trainer_screen_base(lv_event_cb_t back_event_cb)
+{
+    TrainerScreenElements elements;
+
+    // Clean the screen
+    lv_obj_clean(lv_scr_act());
+
+    // Create main screen container
+    elements.screen = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(elements.screen, LV_HOR_RES, LV_VER_RES);
+    lv_obj_set_style_bg_color(elements.screen, lv_color_hex(0x1a1a1a), 0);
+    lv_obj_clear_flag(elements.screen, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Create top label (for round/level/hud display)
+    elements.top_label = lv_label_create(elements.screen);
+    lv_obj_set_style_text_font(elements.top_label, Font2, 0);
+    lv_obj_set_style_text_color(elements.top_label, lv_color_white(), 0);
+    lv_obj_align(elements.top_label, LV_ALIGN_TOP_MID, 0, 20);
+
+    // Create info label (center)
+    elements.info_label = lv_label_create(elements.screen);
+    lv_obj_set_style_text_font(elements.info_label, Font2, 0);
+    lv_obj_set_style_text_color(elements.info_label, lv_color_white(), 0);
+    lv_obj_align(elements.info_label, LV_ALIGN_CENTER, 0, 0);
+
+    // Create results label (hidden initially)
+    elements.results_label = lv_label_create(elements.screen);
+    lv_obj_set_style_text_font(elements.results_label, Font2, 0);
+    lv_obj_set_style_text_color(elements.results_label, lv_color_white(), 0);
+    lv_obj_align(elements.results_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_add_flag(elements.results_label, LV_OBJ_FLAG_HIDDEN);
+
+    // Create back button
+    elements.back_btn = lv_btn_create(elements.screen);
+    lv_obj_set_size(elements.back_btn, 200, 80);
+    lv_obj_align(elements.back_btn, LV_ALIGN_BOTTOM_MID, 0, -30);
+    lv_obj_set_style_bg_color(elements.back_btn, lv_color_hex(0x444444), 0);
+    lv_obj_set_style_bg_color(elements.back_btn, lv_color_hex(0x666666), LV_STATE_PRESSED);
+    lv_obj_set_style_border_color(elements.back_btn, lv_color_white(), 0);
+    lv_obj_set_style_border_width(elements.back_btn, 2, 0);
+
+    lv_obj_t *back_label = lv_label_create(elements.back_btn);
+    lv_label_set_text(back_label, "НАЗАД");
+    lv_obj_set_style_text_font(back_label, Font2, 0);
+    lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
+    lv_obj_center(back_label);
+
+    lv_obj_add_event_cb(elements.back_btn, back_event_cb, LV_EVENT_CLICKED, NULL);
+
+    return elements;
+}

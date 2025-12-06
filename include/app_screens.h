@@ -17,6 +17,19 @@
 // Debug label for button states
 extern lv_obj_t *debug_label;
 
+/**
+ * @brief Structure holding common UI elements for trainer screens.
+ * Used by create_trainer_screen_base() to return pointers to created elements.
+ */
+struct TrainerScreenElements
+{
+    lv_obj_t *screen;        // Main container
+    lv_obj_t *top_label;     // Top label (for round/level display)
+    lv_obj_t *info_label;    // Center info label
+    lv_obj_t *results_label; // Results label (hidden initially)
+    lv_obj_t *back_btn;      // Back button
+};
+
 // Application states (Defined here as they control the UI flow)
 enum AppState
 {
@@ -60,6 +73,13 @@ void create_main_menu();
  * @param trainer_id The ID of the trainer module (0-3).
  */
 void create_trainer_screen(int trainer_id);
+
+/**
+ * @brief Creates the base trainer screen with common UI elements.
+ * @param back_event_cb Callback for the back button click event.
+ * @return TrainerScreenElements structure with pointers to created UI elements.
+ */
+TrainerScreenElements create_trainer_screen_base(lv_event_cb_t back_event_cb);
 
 /**
  * @brief Handles touch events across the application (used by loading screen and flow control).

@@ -68,50 +68,15 @@ extern Preferences preferences;
 
 void create_reaction_trainer_screen()
 {
-    // Clean the screen
-    lv_obj_clean(lv_scr_act());
-
-    // Create main screen container
-    reaction_screen = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(reaction_screen, LV_HOR_RES, LV_VER_RES);
-    lv_obj_set_style_bg_color(reaction_screen, lv_color_hex(0x1a1a1a), 0);
-    lv_obj_clear_flag(reaction_screen, LV_OBJ_FLAG_SCROLLABLE);
-
-    // Create round label
-    round_label = lv_label_create(reaction_screen);
-    lv_obj_set_style_text_font(round_label, Font2, 0);
-    lv_obj_set_style_text_color(round_label, lv_color_white(), 0);
-    lv_obj_align(round_label, LV_ALIGN_TOP_MID, 0, 20);
-
-    // Create info label
-    info_label = lv_label_create(reaction_screen);
-    lv_obj_set_style_text_font(info_label, Font2, 0);
-    lv_obj_set_style_text_color(info_label, lv_color_white(), 0);
-    lv_obj_align(info_label, LV_ALIGN_CENTER, 0, 0);
-
-    // Create results label (hidden initially)
-    results_label = lv_label_create(reaction_screen);
-    lv_obj_set_style_text_font(results_label, Font2, 0);
-    lv_obj_set_style_text_color(results_label, lv_color_white(), 0);
-    lv_obj_align(results_label, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
-
-    // Create back button
-    lv_obj_t *back_btn = lv_btn_create(reaction_screen);
-    lv_obj_set_size(back_btn, 200, 80);
-    lv_obj_align(back_btn, LV_ALIGN_BOTTOM_MID, 0, -30);
-    lv_obj_set_style_bg_color(back_btn, lv_color_hex(0x444444), 0);
-    lv_obj_set_style_bg_color(back_btn, lv_color_hex(0x666666), LV_STATE_PRESSED);
-    lv_obj_set_style_border_color(back_btn, lv_color_white(), 0);
-    lv_obj_set_style_border_width(back_btn, 2, 0);
-
-    lv_obj_t *back_label = lv_label_create(back_btn);
-    lv_label_set_text(back_label, "НАЗАД");
-    lv_obj_set_style_text_font(back_label, Font2, 0);
-    lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
-    lv_obj_center(back_label);
-
-    lv_obj_add_event_cb(back_btn, back_to_menu_event_handler, LV_EVENT_CLICKED, NULL);
+    // Use base function to create common elements
+    TrainerScreenElements elements = create_trainer_screen_base(back_to_menu_event_handler);
+    
+    // Assign to local static variables
+    reaction_screen = elements.screen;
+    round_label = elements.top_label;
+    info_label = elements.info_label;
+    results_label = elements.results_label;
+    // back_btn is local in base function, no need to store
 
     // Initialize game state
     set_time_trial_state(TT_STATE_GET_READY);
