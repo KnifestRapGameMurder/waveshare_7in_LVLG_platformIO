@@ -20,6 +20,8 @@ extern void set_survival_duration_1_min();
 extern void set_survival_duration_2_min();
 extern void set_survival_duration_3_min();
 extern void set_survival_time_state(SurvivalTimeState);
+extern void create_back_button();
+extern void create_dark_background();
 
 // LVGL UI objects (defined here)
 lv_obj_t *menu_buttons[4] = {NULL};
@@ -179,10 +181,10 @@ void create_main_menu()
 
     // Create 4 trainer buttons taking all screen space in 2x2 grid
     const char *trainer_names[] = {
-        "ВЛУЧНІСТЬ",   // Accuracy Trainer
-        "РЕАКЦІЯ",     // Reaction Trainer
-        "ПАМ'ЯТЬ",     // Memory Trainer
-        "КООРДИНАЦІЯ"  // Coordination Trainer
+        "ВЛУЧНІСТЬ",  // Accuracy Trainer
+        "РЕАКЦІЯ",    // Reaction Trainer
+        "ПАМ'ЯТЬ",    // Memory Trainer
+        "КООРДИНАЦІЯ" // Coordination Trainer
     };
 
     // Different colors for each button
@@ -240,11 +242,7 @@ void create_trainer_screen(int trainer_id)
     lv_obj_clean(lv_scr_act());
 
     // Create dark background
-    lv_obj_t *bg = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
-    lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a1a), 0);
-    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+    create_dark_background();
 
     // Title
     char title_text[32];
@@ -263,14 +261,7 @@ void create_trainer_screen(int trainer_id)
     lv_obj_align(content, LV_ALIGN_CENTER, 0, 0);
 
     // Back button
-    back_button = lv_btn_create(lv_scr_act());
-    lv_obj_set_size(back_button, 200, 80);
-    lv_obj_align(back_button, LV_ALIGN_BOTTOM_MID, 0, -30);
-
-    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x444444), 0);
-    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x666666), LV_STATE_PRESSED);
-    lv_obj_set_style_border_color(back_button, lv_color_white(), 0);
-    lv_obj_set_style_border_width(back_button, 2, 0);
+    create_back_button();
 
     lv_obj_t *back_label = lv_label_create(back_button);
     lv_label_set_text(back_label, "НАЗАД");
@@ -287,11 +278,7 @@ void create_accuracy_difficulty_submenu()
     lv_obj_clean(lv_scr_act());
 
     // Create dark background
-    lv_obj_t *bg = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
-    lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a1a), 0);
-    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+    create_dark_background();
 
     // Title
     lv_obj_t *title = lv_label_create(lv_scr_act());
@@ -343,13 +330,7 @@ void create_accuracy_difficulty_submenu()
     lv_obj_add_event_cb(hard_btn, accuracy_difficulty_event_cb, LV_EVENT_CLICKED, (void *)2);
 
     // Back button
-    back_button = lv_btn_create(lv_scr_act());
-    lv_obj_set_size(back_button, 200, 80);
-    lv_obj_align(back_button, LV_ALIGN_BOTTOM_MID, 0, -20);
-    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x444444), 0);
-    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x666666), LV_STATE_PRESSED);
-    lv_obj_set_style_border_color(back_button, lv_color_white(), 0);
-    lv_obj_set_style_border_width(back_button, 2, 0);
+    create_back_button();
 
     lv_obj_t *back_label = lv_label_create(back_button);
     lv_label_set_text(back_label, "НАЗАД");
@@ -369,11 +350,7 @@ void create_reaction_submenu()
     lv_obj_clean(lv_scr_act());
 
     // Create dark background
-    lv_obj_t *bg = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
-    lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a1a), 0);
-    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+    create_dark_background();
 
     // Title
     lv_obj_t *title = lv_label_create(lv_scr_act());
@@ -411,13 +388,7 @@ void create_reaction_submenu()
     lv_obj_add_event_cb(survival_btn, reaction_mode_event_cb, LV_EVENT_CLICKED, (void *)1);
 
     // Back button
-    back_button = lv_btn_create(lv_scr_act());
-    lv_obj_set_size(back_button, 200, 80);
-    lv_obj_align(back_button, LV_ALIGN_BOTTOM_MID, 0, -30);
-    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x444444), 0);
-    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x666666), LV_STATE_PRESSED);
-    lv_obj_set_style_border_color(back_button, lv_color_white(), 0);
-    lv_obj_set_style_border_width(back_button, 2, 0);
+    create_back_button();
 
     lv_obj_t *back_label = lv_label_create(back_button);
     lv_label_set_text(back_label, "НАЗАД");
@@ -437,11 +408,7 @@ void create_coordination_submenu()
     lv_obj_clean(lv_scr_act());
 
     // Create dark background
-    lv_obj_t *bg = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
-    lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a1a), 0);
-    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+    create_dark_background();
 
     // Title
     lv_obj_t *title = lv_label_create(lv_scr_act());
@@ -479,13 +446,7 @@ void create_coordination_submenu()
     lv_obj_add_event_cb(hard_btn, coordination_difficulty_event_cb, LV_EVENT_CLICKED, (void *)1);
 
     // Back button
-    back_button = lv_btn_create(lv_scr_act());
-    lv_obj_set_size(back_button, 200, 80);
-    lv_obj_align(back_button, LV_ALIGN_BOTTOM_MID, 0, -20);
-    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x444444), 0);
-    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x666666), LV_STATE_PRESSED);
-    lv_obj_set_style_border_color(back_button, lv_color_white(), 0);
-    lv_obj_set_style_border_width(back_button, 2, 0);
+    create_back_button();
 
     lv_obj_t *back_label = lv_label_create(back_button);
     lv_label_set_text(back_label, "НАЗАД");
@@ -505,11 +466,7 @@ void create_reaction_survival_submenu()
     lv_obj_clean(lv_scr_act());
 
     // Create dark background
-    lv_obj_t *bg = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
-    lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a1a), 0);
-    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+    create_dark_background();
 
     // Title
     lv_obj_t *title = lv_label_create(lv_scr_act());
@@ -561,13 +518,7 @@ void create_reaction_survival_submenu()
     lv_obj_add_event_cb(min3_btn, survival_duration_event_cb, LV_EVENT_CLICKED, (void *)3);
 
     // Back button
-    back_button = lv_btn_create(lv_scr_act());
-    lv_obj_set_size(back_button, 200, 80);
-    lv_obj_align(back_button, LV_ALIGN_BOTTOM_MID, 0, -30);
-    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x444444), 0);
-    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x666666), LV_STATE_PRESSED);
-    lv_obj_set_style_border_color(back_button, lv_color_white(), 0);
-    lv_obj_set_style_border_width(back_button, 2, 0);
+    create_back_button();
 
     lv_obj_t *back_label = lv_label_create(back_button);
     lv_label_set_text(back_label, "НАЗАД");
@@ -599,4 +550,24 @@ void create_debug_label()
     // Remove background and border to prevent glitching
     lv_obj_set_style_bg_opa(debug_label, LV_OPA_0, 0); // Fully transparent background
     lv_obj_set_style_border_width(debug_label, 0, 0);  // No border
+}
+
+void create_back_button()
+{
+    back_button = lv_btn_create(lv_scr_act());
+    lv_obj_set_size(back_button, 200, 80);
+    lv_obj_align(back_button, LV_ALIGN_BOTTOM_MID, 0, -30);
+    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x444444), 0);
+    lv_obj_set_style_bg_color(back_button, lv_color_hex(0x666666), LV_STATE_PRESSED);
+    lv_obj_set_style_border_color(back_button, lv_color_white(), 0);
+    lv_obj_set_style_border_width(back_button, 2, 0);
+}
+
+void create_dark_background()
+{
+    lv_obj_t *bg = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
+    lv_obj_align(bg, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a1a), 0);
+    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
 }

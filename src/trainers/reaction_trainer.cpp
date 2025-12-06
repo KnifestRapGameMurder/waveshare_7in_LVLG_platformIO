@@ -5,9 +5,10 @@
 #include <lvgl.h>
 #include <Preferences.h>
 #include "fonts.h"
+#include <constants.h>
 
 // === Game Constants ===
-const int GET_READY_DURATION = 3000;      // 3 seconds
+// const int GET_READY_DURATION = 3000;      // 3 seconds
 const int RESULT_DISPLAY_DURATION = 2000; // 2 seconds
 const int TIMEOUT_REACTION = 5000;        // 5 seconds timeout
 const int TOTAL_TT_ROUNDS = 5;            // 5 rounds for time trial

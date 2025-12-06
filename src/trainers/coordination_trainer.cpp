@@ -4,9 +4,10 @@
 #include <Arduino.h>
 #include <lvgl.h>
 #include "fonts.h"
+#include <constants.h>
 
 // === Game Constants ===
-const int GET_READY_DURATION = 3000;                // 3 seconds
+// const int GET_READY_DURATION = 3000;                // 3 seconds
 const int COORDINATION_TIMEOUT = 10000;             // 10 seconds to complete level
 const int ROUND_COMPLETE_DURATION = 1500;           // 1.5 seconds to show success
 const int GAME_OVER_MESSAGE_DURATION = 2000;        // 2 seconds to show game over

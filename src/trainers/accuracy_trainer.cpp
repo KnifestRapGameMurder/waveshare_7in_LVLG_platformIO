@@ -4,9 +4,10 @@
 #include <Arduino.h>
 #include <lvgl.h>
 #include "fonts.h"
+#include <constants.h>
 
 // === Game Constants ===
-const int GET_READY_DURATION = 3000;           // 3 seconds
+// const int GET_READY_DURATION = 3000;           // 3 seconds
 const int ACCURACY_TIMEOUT_EASY = 10000;       // 10 seconds for EASY
 const int ACCURACY_TIMEOUT_MEDIUM = 15000;     // 15 seconds for MEDIUM (більше часу)
 const int ACCURACY_TIMEOUT_HARD = 10000;       // 10 seconds for HARD

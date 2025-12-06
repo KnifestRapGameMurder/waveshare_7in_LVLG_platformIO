@@ -4,9 +4,10 @@
 #include <Arduino.h>
 #include <lvgl.h>
 #include "fonts.h"
+#include <constants.h>
 
 // === Game Constants ===
-const int GET_READY_DURATION = 3000;         // 3 seconds
+// const int GET_READY_DURATION = 3000;         // 3 seconds
 const int LED_SHOW_DURATION = 600;           // ms to show each LED
 const int LED_PAUSE_DURATION = 300;          // ms pause between LEDs
 const int INPUT_TIMEOUT = 10000;             // 10 seconds to input sequence
