@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 // === ПІНИ ТА АПАРАТНІ НАЛАШТУВАННЯ ===
-#define LED_PIN     25
-#define NUM_LEDS    16
+#define LED_PIN 25
+#define NUM_LEDS 16
 #define I2C_SDA_PIN 13
 #define I2C_SCL_PIN 14
 
@@ -13,10 +13,10 @@
 extern uint8_t LED_BRIGHTNESS;
 
 // === ШРИФТИ ===
-extern const char* baseFontName;
-extern const char* welcomeFontName;
-extern const char* fontFileName;
-extern const char* welcomeFontFileName;
+extern const char *baseFontName;
+extern const char *welcomeFontName;
+extern const char *fontFileName;
+extern const char *welcomeFontFileName;
 
 // === ТАЙМІНГИ ===
 // Загальні
