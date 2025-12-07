@@ -82,6 +82,26 @@ void create_trainer_screen(int trainer_id);
 TrainerScreenElements create_trainer_screen_base(lv_event_cb_t back_event_cb);
 
 /**
+ * @brief Structure holding game over menu button elements.
+ */
+struct GameOverMenuElements
+{
+    lv_obj_t *play_again_btn;
+    lv_obj_t *exit_btn;
+};
+
+/**
+ * @brief Creates game over menu with "Play Again" and "Exit" buttons.
+ * @param parent Parent container for buttons.
+ * @param info_label Info label to hide (can be NULL).
+ * @param results_label Results label to hide (can be NULL).
+ * @param event_cb Callback for button clicks (user_data: 0=play again, 1=exit).
+ * @return GameOverMenuElements structure with pointers to created buttons.
+ */
+GameOverMenuElements create_game_over_menu(lv_obj_t *parent, lv_obj_t *info_label, 
+                                           lv_obj_t *results_label, lv_event_cb_t event_cb);
+
+/**
  * @brief Handles touch events across the application (used by loading screen and flow control).
  * This function handles the transition from STATE_LOADING to STATE_MAIN_MENU.
  */

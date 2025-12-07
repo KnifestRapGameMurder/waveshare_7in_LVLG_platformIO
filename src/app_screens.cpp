@@ -623,3 +623,49 @@ TrainerScreenElements create_trainer_screen_base(lv_event_cb_t back_event_cb)
 
     return elements;
 }
+
+GameOverMenuElements create_game_over_menu(lv_obj_t *parent, lv_obj_t *info_lbl, 
+                                           lv_obj_t *results_lbl, lv_event_cb_t event_cb)
+{
+    GameOverMenuElements elements;
+
+    // Hide labels if provided
+    if (info_lbl != NULL)
+    {
+        lv_obj_add_flag(info_lbl, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (results_lbl != NULL)
+    {
+        lv_obj_add_flag(results_lbl, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    // Create play again button
+    elements.play_again_btn = lv_btn_create(parent);
+    lv_obj_set_size(elements.play_again_btn, 300, 80);
+    lv_obj_align(elements.play_again_btn, LV_ALIGN_CENTER, 0, -50);
+    lv_obj_set_style_bg_color(elements.play_again_btn, lv_color_hex(0x00FF00), 0);
+    lv_obj_set_style_bg_color(elements.play_again_btn, lv_color_hex(0x00AA00), LV_STATE_PRESSED);
+
+    lv_obj_t *play_label = lv_label_create(elements.play_again_btn);
+    lv_label_set_text(play_label, "Грати Знову");
+    lv_obj_set_style_text_font(play_label, Font2, 0);
+    lv_obj_center(play_label);
+
+    lv_obj_add_event_cb(elements.play_again_btn, event_cb, LV_EVENT_CLICKED, (void *)0);
+
+    // Create exit button
+    elements.exit_btn = lv_btn_create(parent);
+    lv_obj_set_size(elements.exit_btn, 300, 80);
+    lv_obj_align(elements.exit_btn, LV_ALIGN_CENTER, 0, 50);
+    lv_obj_set_style_bg_color(elements.exit_btn, lv_color_hex(0xFF0000), 0);
+    lv_obj_set_style_bg_color(elements.exit_btn, lv_color_hex(0xAA0000), LV_STATE_PRESSED);
+
+    lv_obj_t *exit_label = lv_label_create(elements.exit_btn);
+    lv_label_set_text(exit_label, "Вихід");
+    lv_obj_set_style_text_font(exit_label, Font2, 0);
+    lv_obj_center(exit_label);
+
+    lv_obj_add_event_cb(elements.exit_btn, event_cb, LV_EVENT_CLICKED, (void *)1);
+
+    return elements;
+}

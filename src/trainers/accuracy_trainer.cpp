@@ -71,7 +71,6 @@ static void move_chaser_easy();
 static void move_target_medium();
 static void flash_target_hard();
 static void display_results();
-static void create_game_over_menu();
 static void game_over_menu_event_handler(lv_event_t *e);
 static void back_to_menu_event_handler(lv_event_t *e);
 
@@ -603,42 +602,6 @@ static void display_results()
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
     lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
-}
-
-static void create_game_over_menu()
-{
-    // Hide other labels
-    lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
-
-    // Create play again button
-    play_again_btn = lv_btn_create(accuracy_screen);
-    lv_obj_set_size(play_again_btn, 300, 80);
-    lv_obj_align(play_again_btn, LV_ALIGN_CENTER, 0, -50);
-    lv_obj_set_style_bg_color(play_again_btn, lv_color_hex(0x00FF00), 0);
-    lv_obj_set_style_bg_color(play_again_btn, lv_color_hex(0x00AA00), LV_STATE_PRESSED);
-
-    lv_obj_t *play_label = lv_label_create(play_again_btn);
-    lv_label_set_text(play_label, "Грати Знову");
-    lv_obj_set_style_text_font(play_label, Font2, 0);
-    lv_obj_center(play_label);
-
-    lv_obj_add_event_cb(play_again_btn, game_over_menu_event_handler, LV_EVENT_CLICKED, (void *)0);
-
-    // Create exit button
-    exit_btn = lv_btn_create(accuracy_screen);
-    lv_obj_set_size(exit_btn, 300, 80);
-    lv_obj_align(exit_btn, LV_ALIGN_CENTER, 0, 50);
-    lv_obj_set_style_bg_color(exit_btn, lv_color_hex(0xFF0000), 0);
-    lv_obj_set_style_bg_color(exit_btn, lv_color_hex(0xAA0000), LV_STATE_PRESSED);
-
-    lv_obj_t *exit_label = lv_label_create(exit_btn);
-    lv_label_set_text(exit_label, "Вихід");
-    lv_obj_set_style_text_font(exit_label, Font2, 0);
-    lv_obj_center(exit_label);
-
-    lv_obj_add_event_cb(exit_btn, game_over_menu_event_handler, LV_EVENT_CLICKED, (void *)1);
-    lv_obj_move_foreground(back_btn);
 }
 
 static void game_over_menu_event_handler(lv_event_t *e)

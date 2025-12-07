@@ -47,7 +47,6 @@ static void check_button_presses_memory();
 static void check_hardware_back_button();
 static void generate_new_random_sequence();
 static void display_results();
-static void create_game_over_menu();
 static void game_over_menu_event_handler(lv_event_t *e);
 static void back_to_menu_event_handler(lv_event_t *e);
 
@@ -466,122 +465,6 @@ static void display_results()
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
     lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
-}
-
-static void create_game_over_menu()
-{
-    Serial.println("Mem: create_game_over_menu() started");
-    
-    // Hide other labels and clear buttons first
-    lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
-    
-    Serial.println("Mem: Labels hidden");
-    
-    // Clean up existing buttons if they exist
-    if (play_again_btn) {
-        lv_obj_del(play_again_btn);
-        play_again_btn = NULL;
-    }
-    if (exit_btn) {
-        lv_obj_del(exit_btn);
-        exit_btn = NULL;
-    }
-    
-    Serial.println("Mem: Old buttons cleaned");
-
-    // Display result message
-    Serial.println("Mem: About to show results label");
-    lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_set_style_text_color(results_label, lv_color_white(), 0);
-    
-    Serial.println("Mem: Creating results text");
-    char results_text[256];
-    if (current_sequence_length > MAX_SEQUENCE_LENGTH)
-    {
-        snprintf(results_text, sizeof(results_text),
-                 "Гру завершено!\n\nТи переміг!\nРівень: %d",
-                 MAX_SEQUENCE_LENGTH);
-    }
-    else
-    {
-        snprintf(results_text, sizeof(results_text),
-                 "Гру завершено!\n\nТвій рівень: %d",
-                 current_sequence_length - 1);
-    }
-    
-    Serial.println("Mem: Setting results text");
-    
-    // Check if results_label is valid
-    if (results_label == NULL) {
-        Serial.println("Mem: ERROR - results_label is NULL!");
-        return;
-    }
-    
-    Serial.println("Mem: results_label is valid, trying simple approach...");
-    
-    // Skip the problematic operations for now - just show a simple message
-    lv_obj_clear_flag(info_label, LV_OBJ_FLAG_HIDDEN);
-    lv_label_set_text(info_label, "Гру завершено!");
-    lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
-    
-    Serial.println("Mem: Simple game over message shown");
-
-    Serial.println("Mem: About to create play again button");
-
-    Serial.println("Mem: About to create play again button");
-    // Create simple play again button without complex styling
-    play_again_btn = lv_btn_create(memory_screen);
-    Serial.println("Mem: Play again button created");
-    
-    if (play_again_btn == NULL) {
-        Serial.println("Mem: ERROR - Could not create play again button!");
-        return;
-    }
-    
-    lv_obj_set_size(play_again_btn, 200, 50);
-    lv_obj_align(play_again_btn, LV_ALIGN_CENTER, 0, -20);
-    Serial.println("Mem: Play again button positioned");
-
-    // Create simple label
-    lv_obj_t *play_label = lv_label_create(play_again_btn);
-    if (play_label == NULL) {
-        Serial.println("Mem: ERROR - Could not create play label!");
-        return;
-    }
-    
-    lv_label_set_text(play_label, "Грати");
-    lv_obj_center(play_label);
-    Serial.println("Mem: Play again button completed");
-
-    lv_obj_add_event_cb(play_again_btn, game_over_menu_event_handler, LV_EVENT_CLICKED, (void *)0);
-    Serial.println("Mem: Play again button event handler set");
-
-    // Create simple exit button
-    Serial.println("Mem: About to create exit button");
-    exit_btn = lv_btn_create(memory_screen);
-    if (exit_btn == NULL) {
-        Serial.println("Mem: ERROR - Could not create exit button!");
-        return;
-    }
-    
-    lv_obj_set_size(exit_btn, 200, 50);
-    lv_obj_align(exit_btn, LV_ALIGN_CENTER, 0, 40);
-    Serial.println("Mem: Exit button positioned");
-
-    lv_obj_t *exit_label = lv_label_create(exit_btn);
-    if (exit_label == NULL) {
-        Serial.println("Mem: ERROR - Could not create exit label!");
-        return;
-    }
-    
-    lv_label_set_text(exit_label, "Вихід");
-    lv_obj_center(exit_label);
-    Serial.println("Mem: Exit button completed");
-
-    lv_obj_add_event_cb(exit_btn, game_over_menu_event_handler, LV_EVENT_CLICKED, (void *)1);
-    
-    Serial.println("Mem: create_game_over_menu() completed successfully");
 }
 
 static void game_over_menu_event_handler(lv_event_t *e)
