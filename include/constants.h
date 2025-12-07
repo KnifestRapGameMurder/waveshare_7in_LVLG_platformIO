@@ -9,6 +9,31 @@
 #define I2C_SDA_PIN 13
 #define I2C_SCL_PIN 14
 
+// === UI КОЛЬОРИ (LVGL hex format) ===
+#define COLOR_BG_DARK           0x1a1a1a
+#define COLOR_BTN_BACK          0x444444
+#define COLOR_BTN_BACK_PRESSED  0x666666
+#define COLOR_BTN_GREEN         0x00FF00
+#define COLOR_BTN_GREEN_PRESSED 0x00AA00
+#define COLOR_BTN_RED           0xFF0000
+#define COLOR_BTN_RED_PRESSED   0xAA0000
+#define COLOR_BTN_YELLOW        0xFFFF00
+#define COLOR_BTN_YELLOW_PRESSED 0xAAAA00
+#define COLOR_BTN_CYAN          0x00CED1
+#define COLOR_BTN_CYAN_PRESSED  0x008B8B
+#define COLOR_BTN_ORANGE        0xFF6347
+#define COLOR_BTN_ORANGE_PRESSED 0xCD5C5C
+// Main menu trainer button colors
+#define COLOR_MENU_ACCURACY     0xFFD700  // Gold
+#define COLOR_MENU_REACTION     0x00CED1  // Dark Turquoise
+#define COLOR_MENU_MEMORY       0x9370DB  // Medium Purple
+#define COLOR_MENU_COORDINATION 0x32CD32  // Lime Green
+#define COLOR_MENU_PRESSED_OFFSET 0x333333
+#define COLOR_TEXT_SECONDARY    0xCCCCCC
+#define COLOR_TEXT_WHITE        0xFFFFFF
+#define COLOR_TEXT_ERROR        0xFF0000
+#define COLOR_TEXT_SUCCESS      0x00FF00
+
 // === ЗАГАЛЬНІ НАЛАШТУВАННЯ ===
 extern uint8_t LED_BRIGHTNESS;
 

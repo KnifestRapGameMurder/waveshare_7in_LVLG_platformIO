@@ -40,7 +40,6 @@ static int correct_presses = 0;
 static int total_rounds = 0;
 static int misses = 0;
 static bool feedback_success = false;
-static uint16_t last_button_state = 0xFFFF; // Start with all buttons released
 
 // === Chaser (Easy Mode) Variables ===
 static int chaser_position = 0;

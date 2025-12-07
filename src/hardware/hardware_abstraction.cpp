@@ -8,6 +8,9 @@ extern UARTProtocol uart_protocol;
 // Initialize with 0xFFFF = all buttons released (1 = not pressed)
 uint16_t button_state_cache = 0xFFFF;
 
+// Last button state for edge detection (shared across trainers)
+uint16_t last_button_state = 0xFFFF;
+
 // --- Button Abstraction ---
 uint16_t expanderRead()
 {
@@ -17,6 +20,31 @@ uint16_t expanderRead()
 void update_button_state(uint16_t newState)
 {
     button_state_cache = newState;
+}
+
+int get_pressed_button()
+{
+    uint16_t current_button_state = expanderRead();
+    
+    for (int i = 0; i < NUM_LEDS; i++)
+    {
+        bool was_pressed = !(last_button_state & (1 << i));
+        bool is_pressed = !(current_button_state & (1 << i));
+        
+        if (!was_pressed && is_pressed) // Button just pressed (rising edge)
+        {
+            last_button_state = current_button_state;
+            return i;
+        }
+    }
+    
+    last_button_state = current_button_state;
+    return -1; // No new button press
+}
+
+void reset_button_state()
+{
+    last_button_state = expanderRead();
 }
 
 void rgbColorToHex6(RgbColor color, char out[7]) // out: "RRGGBB"

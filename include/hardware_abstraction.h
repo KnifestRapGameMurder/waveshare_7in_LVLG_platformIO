@@ -30,6 +30,21 @@ uint16_t expanderRead();
 // This function will be called from main.cpp when a button state message arrives.
 void update_button_state(uint16_t newState);
 
+// Last button state for edge detection (shared across trainers)
+extern uint16_t last_button_state;
+
+/**
+ * @brief Get the index of a button that was just pressed (rising edge detection).
+ * Updates last_button_state internally.
+ * @return Button index (0 to NUM_LEDS-1) if a button was just pressed, or -1 if no new press.
+ */
+int get_pressed_button();
+
+/**
+ * @brief Reset last_button_state to current state (call when entering new game state).
+ */
+void reset_button_state();
+
 // --- LED Strip Abstraction ---
 // These functions will send commands over UART to the slave board.
 void strip_SetPixelColor(uint16_t n, RgbColor color);

@@ -22,7 +22,6 @@ static int current_sequence_step = 0;                // Step in showing sequence
 static int user_input_sequence[MAX_SEQUENCE_LENGTH]; // User's input
 static int current_user_input_step = 0;              // Step in user input
 static unsigned long memory_trainer_timer = 0;       // Timer for states
-static uint16_t last_button_state = 0xFFFF;          // Start with all buttons released
 
 // Quick LED feedback without delay()
 static bool led_feedback_active = false;

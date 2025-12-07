@@ -25,7 +25,6 @@ static unsigned long timeTrialTimer = 0;
 static bool waitForReaction = false;
 static unsigned long reactionStart = 0;
 static int targetButton = 0;
-static uint16_t last_button_state = 0xFFFF; // Start with all buttons released
 
 // === Survival Variables ===
 static SurvivalTimeState survivalTimeState = ST_STATE_IDLE;

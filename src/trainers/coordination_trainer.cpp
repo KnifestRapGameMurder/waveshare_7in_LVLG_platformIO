@@ -33,7 +33,6 @@ static unsigned long target_show_duration = 2000; // Initial show duration
 static unsigned long round_start_time = 0;
 static int correct_coordination_presses = 0;
 static int total_coordination_rounds = 0;
-static uint16_t last_button_state = 0xFFFF; // Start with all buttons released
 
 // === UI Elements ===
 static lv_obj_t *coordination_screen = NULL;
