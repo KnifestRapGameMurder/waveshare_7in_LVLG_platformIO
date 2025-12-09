@@ -246,12 +246,19 @@ void run_time_trial()
             }
             else
             {
-                Serial.println("TT_STATE_SHOW_RESULT: All rounds done! Showing results and menu immediately");
+                Serial.println("TT_STATE_SHOW_RESULT: All rounds done! Showing results");
                 display_time_trial_results();
-                delay(100); // Small delay to ensure display updates
-                create_time_trial_game_over_menu();
-                set_time_trial_state(TT_STATE_WAIT_FOR_EXIT);
+                set_time_trial_state(TT_STATE_SHOW_RESULTS);
             }
+        }
+        break;
+
+    case TT_STATE_SHOW_RESULTS:
+        // Show results for 3 seconds then show menu
+        if (lv_tick_get() - timeTrialTimer > 3000)
+        {
+            create_time_trial_game_over_menu();
+            set_time_trial_state(TT_STATE_WAIT_FOR_EXIT);
         }
         break;
 
@@ -266,10 +273,6 @@ void run_time_trial()
 
     case TT_STATE_WAIT_FOR_EXIT:
         // Just wait for user to press menu buttons
-        break;
-
-    case TT_STATE_SHOW_RESULTS:
-        // Not used anymore
         break;
 
     case TT_STATE_GAME_OVER_MENU:
@@ -310,12 +313,12 @@ static void display_time_trial_results()
     {
         unsigned long avgTime = totalReactionTime / validRounds;
         snprintf(results_text, sizeof(results_text), 
-                 "Avg: %lu ms | Best: %lu ms | %d/%d",
+                 "Сер: %lu мс | Кращ: %lu мс | %d/%d",
                  avgTime, bestTime, validRounds, TOTAL_TT_ROUNDS);
     }
     else
     {
-        snprintf(results_text, sizeof(results_text), "No data");
+        snprintf(results_text, sizeof(results_text), "Немає даних");
     }
     
     lv_obj_set_style_text_font(results_label, Font3, 0);
@@ -575,6 +578,7 @@ static void display_survival_results()
     Serial.println("display_survival_results");
 
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(round_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
     bool newRecord = is_new_record(survivalCorrectPresses, currentSurvivalDurationMinutes);
@@ -592,14 +596,14 @@ static void display_survival_results()
     if (newRecord)
     {
         snprintf(results_text, sizeof(results_text),
-                 "NEW RECORD! Score: %d | %.0f%%",
+                 "НОВИЙ РЕКОРД! Очки: %d | %.0f%%",
                  survivalCorrectPresses, accuracy);
         lv_obj_set_style_text_color(results_label, lv_color_hex(0x00FF00), 0);
     }
     else
     {
         snprintf(results_text, sizeof(results_text),
-                 "Score: %d | %.0f%% | Record: %d",
+                 "Очки: %d | %.0f%% | Рекорд: %d",
                  survivalCorrectPresses, accuracy, currentRecord);
     }
     

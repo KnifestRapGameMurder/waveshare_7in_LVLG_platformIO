@@ -598,17 +598,18 @@ void run_accuracy_trainer()
 static void display_results()
 {
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(hud_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
     // Calculate accuracy percentage
     float accuracy = (total_rounds > 0) ? (100.0f * correct_presses / total_rounds) : 0.0f;
     
-    // Get difficulty name (short)
+    // Get difficulty name (short Ukrainian)
     const char* diff_short;
     switch (current_difficulty) {
-        case ACCURACY_EASY:   diff_short = "Easy"; break;
-        case ACCURACY_MEDIUM: diff_short = "Med"; break;
-        case ACCURACY_HARD:   diff_short = "Hard"; break;
+        case ACCURACY_EASY:   diff_short = "Легко"; break;
+        case ACCURACY_MEDIUM: diff_short = "Серед"; break;
+        case ACCURACY_HARD:   diff_short = "Важко"; break;
         default:              diff_short = "-"; break;
     }
     

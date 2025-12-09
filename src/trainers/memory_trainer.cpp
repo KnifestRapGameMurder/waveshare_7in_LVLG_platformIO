@@ -461,6 +461,7 @@ void run_memory_trainer()
 static void display_results()
 {
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(level_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
     int achieved_level = current_sequence_length - 1;
@@ -468,7 +469,7 @@ static void display_results()
     
     char results_text[128];
     snprintf(results_text, sizeof(results_text),
-             "Level: %d/%d",
+             "Рівень: %d/%d",
              achieved_level, MAX_SEQUENCE_LENGTH);
     
     lv_obj_set_style_text_font(results_label, Font3, 0);
