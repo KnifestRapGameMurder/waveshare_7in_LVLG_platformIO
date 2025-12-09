@@ -601,26 +601,16 @@ static void display_results()
     lv_obj_add_flag(hud_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
-    // Calculate accuracy percentage
     float accuracy = (total_rounds > 0) ? (100.0f * correct_presses / total_rounds) : 0.0f;
     
-    // Get difficulty name (short Ukrainian)
-    const char* diff_short;
-    switch (current_difficulty) {
-        case ACCURACY_EASY:   diff_short = "Легко"; break;
-        case ACCURACY_MEDIUM: diff_short = "Серед"; break;
-        case ACCURACY_HARD:   diff_short = "Важко"; break;
-        default:              diff_short = "-"; break;
-    }
-    
-    // Compact results text
-    char results_text[128];
+    // Short text for Font2 (48px) - max ~12 chars wide
+    char results_text[64];
     snprintf(results_text, sizeof(results_text),
-        "%.0f%% | %d/%d | %s",
-        accuracy, correct_presses, total_rounds, diff_short);
+        "%.0f%% %d/%d",
+        accuracy, correct_presses, total_rounds);
     
-    lv_obj_set_style_text_font(results_label, Font3, 0);
-    lv_obj_set_width(results_label, 600);
+    lv_obj_set_style_text_font(results_label, Font2, 0);
+    lv_obj_set_width(results_label, 780);
     lv_label_set_text(results_label, results_text);
     lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
 }

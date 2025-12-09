@@ -308,21 +308,21 @@ static void display_time_trial_results()
         }
     }
 
-    char results_text[128];
+    char results_text[64];
     if (validRounds > 0)
     {
         unsigned long avgTime = totalReactionTime / validRounds;
         snprintf(results_text, sizeof(results_text), 
-                 "Сер: %lu мс | Кращ: %lu мс | %d/%d",
-                 avgTime, bestTime, validRounds, TOTAL_TT_ROUNDS);
+                 "%lu ms",
+                 avgTime);
     }
     else
     {
-        snprintf(results_text, sizeof(results_text), "Немає даних");
+        snprintf(results_text, sizeof(results_text), "---");
     }
     
-    lv_obj_set_style_text_font(results_label, Font3, 0);
-    lv_obj_set_width(results_label, 700);
+    lv_obj_set_style_text_font(results_label, Font2, 0);
+    lv_obj_set_width(results_label, 780);
     lv_label_set_text(results_label, results_text);
     lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
     Serial.println("display_time_trial_results END");
@@ -589,26 +589,23 @@ static void display_survival_results()
         save_survival_record(currentSurvivalDurationMinutes, survivalCorrectPresses);
     }
 
-    float accuracy = (survivalTotalPresses > 0) ? 
-        (100.0f * survivalCorrectPresses / survivalTotalPresses) : 0.0f;
-
-    char results_text[128];
+    char results_text[64];
     if (newRecord)
     {
         snprintf(results_text, sizeof(results_text),
-                 "НОВИЙ РЕКОРД! Очки: %d | %.0f%%",
-                 survivalCorrectPresses, accuracy);
+                 "NEW! %d",
+                 survivalCorrectPresses);
         lv_obj_set_style_text_color(results_label, lv_color_hex(0x00FF00), 0);
     }
     else
     {
         snprintf(results_text, sizeof(results_text),
-                 "Очки: %d | %.0f%% | Рекорд: %d",
-                 survivalCorrectPresses, accuracy, currentRecord);
+                 "%d / %d",
+                 survivalCorrectPresses, currentRecord);
     }
     
-    lv_obj_set_style_text_font(results_label, Font3, 0);
-    lv_obj_set_width(results_label, 700);
+    lv_obj_set_style_text_font(results_label, Font2, 0);
+    lv_obj_set_width(results_label, 780);
     lv_label_set_text(results_label, results_text);
     lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
     Serial.println("Results displayed");

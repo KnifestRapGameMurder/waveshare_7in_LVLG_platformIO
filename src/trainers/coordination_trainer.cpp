@@ -361,23 +361,18 @@ static void display_results()
     int max_level = (current_submenu_state == CS_EASY_MODE) ? 
         COORDINATION_EASY_MAX_LEDS : COORDINATION_HARD_MAX_LEDS;
     
-    float accuracy = (total_coordination_rounds > 0) ? 
-        (100.0f * correct_coordination_presses / total_coordination_rounds) : 0.0f;
-    
-    char results_text[128];
+    char results_text[32];
     snprintf(results_text, sizeof(results_text),
-             "Рівень: %d/%d | %.0f%%",
-             current_level, max_level, accuracy);
+             "%d / %d",
+             current_level, max_level);
     
-    lv_obj_set_style_text_font(results_label, Font3, 0);
-    lv_obj_set_width(results_label, 500);
+    lv_obj_set_style_text_font(results_label, Font2, 0);
+    lv_obj_set_width(results_label, 780);
     lv_label_set_text(results_label, results_text);
     lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
     
-    if (accuracy >= 80.0f) {
+    if (current_level >= max_level / 2) {
         lv_obj_set_style_text_color(results_label, lv_color_hex(0x00FF00), 0);
-    } else if (accuracy >= 50.0f) {
-        lv_obj_set_style_text_color(results_label, lv_color_hex(0xFFFF00), 0);
     }
 }
 

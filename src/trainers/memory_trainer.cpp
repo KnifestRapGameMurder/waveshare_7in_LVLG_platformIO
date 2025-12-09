@@ -467,13 +467,13 @@ static void display_results()
     int achieved_level = current_sequence_length - 1;
     if (achieved_level < 0) achieved_level = 0;
     
-    char results_text[128];
+    char results_text[32];
     snprintf(results_text, sizeof(results_text),
-             "Рівень: %d/%d",
+             "%d / %d",
              achieved_level, MAX_SEQUENCE_LENGTH);
     
-    lv_obj_set_style_text_font(results_label, Font3, 0);
-    lv_obj_set_width(results_label, 400);
+    lv_obj_set_style_text_font(results_label, Font2, 0);
+    lv_obj_set_width(results_label, 780);
     lv_label_set_text(results_label, results_text);
     lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
     
