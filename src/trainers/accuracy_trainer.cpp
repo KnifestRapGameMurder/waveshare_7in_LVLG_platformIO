@@ -600,7 +600,28 @@ static void display_results()
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
-    lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
+    // Calculate accuracy percentage
+    float accuracy = (total_rounds > 0) ? (100.0f * correct_presses / total_rounds) : 0.0f;
+    
+    // Get difficulty name (short)
+    const char* diff_short;
+    switch (current_difficulty) {
+        case ACCURACY_EASY:   diff_short = "Easy"; break;
+        case ACCURACY_MEDIUM: diff_short = "Med"; break;
+        case ACCURACY_HARD:   diff_short = "Hard"; break;
+        default:              diff_short = "-"; break;
+    }
+    
+    // Compact results text
+    char results_text[128];
+    snprintf(results_text, sizeof(results_text),
+        "%.0f%% | %d/%d | %s",
+        accuracy, correct_presses, total_rounds, diff_short);
+    
+    lv_obj_set_style_text_font(results_label, Font3, 0);
+    lv_obj_set_width(results_label, 600);
+    lv_label_set_text(results_label, results_text);
+    lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
 }
 
 static void game_over_menu_event_handler(lv_event_t *e)

@@ -357,7 +357,27 @@ static void display_results()
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
-    lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
+    int max_level = (current_submenu_state == CS_EASY_MODE) ? 
+        COORDINATION_EASY_MAX_LEDS : COORDINATION_HARD_MAX_LEDS;
+    
+    float accuracy = (total_coordination_rounds > 0) ? 
+        (100.0f * correct_coordination_presses / total_coordination_rounds) : 0.0f;
+    
+    char results_text[128];
+    snprintf(results_text, sizeof(results_text),
+             "Level: %d/%d | %.0f%%",
+             current_level, max_level, accuracy);
+    
+    lv_obj_set_style_text_font(results_label, Font3, 0);
+    lv_obj_set_width(results_label, 500);
+    lv_label_set_text(results_label, results_text);
+    lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
+    
+    if (accuracy >= 80.0f) {
+        lv_obj_set_style_text_color(results_label, lv_color_hex(0x00FF00), 0);
+    } else if (accuracy >= 50.0f) {
+        lv_obj_set_style_text_color(results_label, lv_color_hex(0xFFFF00), 0);
+    }
 }
 
 static void game_over_menu_event_handler(lv_event_t *e)

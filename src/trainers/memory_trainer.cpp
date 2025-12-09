@@ -463,7 +463,22 @@ static void display_results()
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
-    lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
+    int achieved_level = current_sequence_length - 1;
+    if (achieved_level < 0) achieved_level = 0;
+    
+    char results_text[128];
+    snprintf(results_text, sizeof(results_text),
+             "Level: %d/%d",
+             achieved_level, MAX_SEQUENCE_LENGTH);
+    
+    lv_obj_set_style_text_font(results_label, Font3, 0);
+    lv_obj_set_width(results_label, 400);
+    lv_label_set_text(results_label, results_text);
+    lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
+    
+    if (achieved_level >= 5) {
+        lv_obj_set_style_text_color(results_label, lv_color_hex(0x00FF00), 0);
+    }
 }
 
 static void game_over_menu_event_handler(lv_event_t *e)

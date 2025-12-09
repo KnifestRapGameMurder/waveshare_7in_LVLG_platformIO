@@ -284,7 +284,6 @@ static void display_time_trial_results()
 {
     Serial.println("display_time_trial_results START");
     
-    // Clear LEDs first
     strip_Clear();
     strip_Show();
     
@@ -293,37 +292,36 @@ static void display_time_trial_results()
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
     unsigned long totalReactionTime = 0;
+    unsigned long bestTime = UINT32_MAX;
     int validRounds = 0;
+    
     for (int i = 0; i < TOTAL_TT_ROUNDS; i++)
     {
-        Serial.printf("Round %d: time = %lu ms\n", i, reactionTimes[i]);
         if (reactionTimes[i] > 0 && reactionTimes[i] <= TIMEOUT_REACTION)
         {
             totalReactionTime += reactionTimes[i];
+            if (reactionTimes[i] < bestTime) bestTime = reactionTimes[i];
             validRounds++;
         }
     }
 
-    Serial.printf("validRounds: %d, totalReactionTime: %lu\n", validRounds, totalReactionTime);
-
     char results_text[128];
     if (validRounds > 0)
     {
-        unsigned long averageReactionTime = totalReactionTime / validRounds;
-        Serial.printf("averageReactionTime: %lu ms\n", averageReactionTime);
+        unsigned long avgTime = totalReactionTime / validRounds;
         snprintf(results_text, sizeof(results_text), 
-                 "РЕЗУЛЬТАТИ\n\nСередній час:\n%lu мс", 
-                 averageReactionTime);
+                 "Avg: %lu ms | Best: %lu ms | %d/%d",
+                 avgTime, bestTime, validRounds, TOTAL_TT_ROUNDS);
     }
     else
     {
-        Serial.println("No valid rounds");
-        snprintf(results_text, sizeof(results_text), "РЕЗУЛЬТАТИ\n\nНемає даних");
+        snprintf(results_text, sizeof(results_text), "No data");
     }
     
-    Serial.printf("Setting text: %s\n", results_text);
-    // lv_label_set_text(results_label, results_text);
-    lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
+    lv_obj_set_style_text_font(results_label, Font3, 0);
+    lv_obj_set_width(results_label, 700);
+    lv_label_set_text(results_label, results_text);
+    lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
     Serial.println("display_time_trial_results END");
 }
 
@@ -577,25 +575,39 @@ static void display_survival_results()
     Serial.println("display_survival_results");
 
     lv_obj_add_flag(info_label, LV_OBJ_FLAG_HIDDEN);
-    Serial.println("lv_obj_add_flag");
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
-    Serial.println("lv_obj_clear_flag");
 
-    // Check for new record
     bool newRecord = is_new_record(survivalCorrectPresses, currentSurvivalDurationMinutes);
-    Serial.println("newRecord");
     int currentRecord = get_survival_record(currentSurvivalDurationMinutes);
-    Serial.println("currentRecord");
 
-    // Save record if needed
     if (newRecord)
     {
         save_survival_record(currentSurvivalDurationMinutes, survivalCorrectPresses);
-        Serial.println("save_survival_record");
     }
 
-    lv_label_set_text(results_label, "РЕЗУЛЬТАТИ");
-    Serial.println("Results set to simple text");
+    float accuracy = (survivalTotalPresses > 0) ? 
+        (100.0f * survivalCorrectPresses / survivalTotalPresses) : 0.0f;
+
+    char results_text[128];
+    if (newRecord)
+    {
+        snprintf(results_text, sizeof(results_text),
+                 "NEW RECORD! Score: %d | %.0f%%",
+                 survivalCorrectPresses, accuracy);
+        lv_obj_set_style_text_color(results_label, lv_color_hex(0x00FF00), 0);
+    }
+    else
+    {
+        snprintf(results_text, sizeof(results_text),
+                 "Score: %d | %.0f%% | Record: %d",
+                 survivalCorrectPresses, accuracy, currentRecord);
+    }
+    
+    lv_obj_set_style_text_font(results_label, Font3, 0);
+    lv_obj_set_width(results_label, 700);
+    lv_label_set_text(results_label, results_text);
+    lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
+    Serial.println("Results displayed");
 }
 
 static void create_time_trial_game_over_menu()
