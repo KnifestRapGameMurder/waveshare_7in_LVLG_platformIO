@@ -1,6 +1,7 @@
 #include "accuracy_trainer.h"
 #include "hardware_abstraction.h"
 #include "app_screens.h"
+#include "globals.h"
 #include <Arduino.h>
 #include <lvgl.h>
 #include "fonts.h"
@@ -602,6 +603,18 @@ static void display_results()
     lv_obj_clear_flag(results_label, LV_OBJ_FLAG_HIDDEN);
 
     float accuracy = (total_rounds > 0) ? (100.0f * correct_presses / total_rounds) : 0.0f;
+    
+    // === Зберігаємо статистику пацієнта ===
+    PatientStats *stats = &patientStats[currentPatientIndex];
+    stats->accuracy_sessions++;
+    stats->accuracy_total_hits += correct_presses;
+    stats->accuracy_total_misses += misses;
+    if (correct_presses > stats->accuracy_best_score)
+    {
+        stats->accuracy_best_score = correct_presses;
+    }
+    savePatientStats(currentPatientIndex);
+    // =======================================
     
     // Short text for Font2 (48px) - max ~12 chars wide
     char results_text[64];

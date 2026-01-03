@@ -60,4 +60,14 @@ extern int currentSurvivalDurationMinutes;
 // === ЗМІННІ ЗАПОБІГАННЯ ПОВТОРЕНЬ ===
 extern int lastSurvivalTargetButton;
 
+// === СИСТЕМА ПАЦІЄНТІВ ===
+extern int currentPatientIndex;              // Поточний вибраний пацієнт (0 = гість)
+extern PatientStats patientStats[PATIENT_COUNT];  // Статистика всіх пацієнтів
+
+// Функції роботи з пацієнтами
+void initPatientSystem();
+void savePatientStats(int patientIndex);
+void loadPatientStats(int patientIndex);
+void clearPatientStats(int patientIndex);
+
 #endif // GLOBALS_H

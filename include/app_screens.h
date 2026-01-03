@@ -34,6 +34,8 @@ struct TrainerScreenElements
 enum AppState
 {
     STATE_LOADING,              // Loading screen with animation
+    STATE_PATIENT_SELECT,       // Patient selection screen (15 + guest)
+    STATE_PATIENT_STATS,        // Patient statistics view
     STATE_MAIN_MENU,            // Main menu with 4 training buttons
     STATE_ACCURACY_TRAINER,     // Accuracy trainer
     STATE_REACTION_TRAINER,     // Reaction trainer (Time Trial & Survival)
@@ -67,6 +69,16 @@ extern lv_obj_t *back_button;
  * @brief Creates the main menu screen with 4 navigation buttons.
  */
 void create_main_menu();
+
+/**
+ * @brief Creates the patient selection screen (15 patients + guest).
+ */
+void create_patient_select_screen();
+
+/**
+ * @brief Creates the patient statistics screen.
+ */
+void create_patient_stats_screen();
 
 /**
  * @brief Creates the generic trainer screen container.

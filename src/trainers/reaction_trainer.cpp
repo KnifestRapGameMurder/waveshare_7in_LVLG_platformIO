@@ -1,6 +1,7 @@
 #include "reaction_trainer.h"
 #include "hardware_abstraction.h"
 #include "app_screens.h"
+#include "globals.h"
 #include <Arduino.h>
 #include <lvgl.h>
 #include <Preferences.h>
@@ -33,13 +34,9 @@ static unsigned long survivalGameStartTime = 0;
 static int survivalCorrectPresses = 0;
 static int survivalTotalPresses = 0;
 static unsigned long survivalRoundTimer = 0;
-static int lastSurvivalTargetButton = -1;
-static int currentSurvivalDurationMinutes = 1;
-
-// === Records ===
-static int survivalRecord2Min = 0;
-static int survivalRecord3Min = 0;
-static int survivalRecord4Min = 0;
+// Note: lastSurvivalTargetButton, currentSurvivalDurationMinutes, 
+// survivalRecord2Min, survivalRecord3Min, survivalRecord4Min
+// are declared as extern in globals.h and defined in globals.cpp
 
 // === UI Elements ===
 static lv_obj_t *reaction_screen = NULL;
@@ -307,6 +304,22 @@ static void display_time_trial_results()
             validRounds++;
         }
     }
+
+    // === Зберігаємо статистику пацієнта ===
+    PatientStats *stats = &patientStats[currentPatientIndex];
+    stats->reaction_sessions++;
+    if (validRounds > 0)
+    {
+        unsigned long avgTime = totalReactionTime / validRounds;
+        stats->reaction_avg_time_sum += avgTime;
+        stats->reaction_avg_count++;
+        if (bestTime < stats->reaction_best_time_ms || stats->reaction_best_time_ms == 0)
+        {
+            stats->reaction_best_time_ms = bestTime;
+        }
+    }
+    savePatientStats(currentPatientIndex);
+    // =======================================
 
     char results_text[64];
     if (validRounds > 0)
@@ -588,6 +601,12 @@ static void display_survival_results()
     {
         save_survival_record(currentSurvivalDurationMinutes, survivalCorrectPresses);
     }
+
+    // === Зберігаємо статистику пацієнта (також для survival) ===
+    PatientStats *stats = &patientStats[currentPatientIndex];
+    stats->reaction_sessions++;
+    savePatientStats(currentPatientIndex);
+    // ===========================================================
 
     char results_text[64];
     if (newRecord)

@@ -6,6 +6,7 @@
 
 #include "app_screens.h"
 #include "constants.h"
+#include "globals.h"
 
 // Extern declarations for trainer functions
 extern void set_accuracy_easy_mode();
@@ -160,11 +161,11 @@ void app_screen_touch_cb(lv_event_t *event)
     {
         if (code == LV_EVENT_CLICKED || code == LV_EVENT_PRESSED)
         {
-            Serial.println("[ДОТИК] Перехід від завантаження до головного меню");
-            current_state = STATE_MAIN_MENU;
+            Serial.println("[ДОТИК] Перехід від завантаження до вибору пацієнта");
+            current_state = STATE_PATIENT_SELECT;
             state_start_time = lv_tick_get();
             last_interaction_time = lv_tick_get();
-            create_main_menu();
+            create_patient_select_screen();
         }
     }
     else
@@ -669,4 +670,324 @@ GameOverMenuElements create_game_over_menu(lv_obj_t *parent, lv_obj_t *info_lbl,
     lv_obj_add_event_cb(elements.exit_btn, event_cb, LV_EVENT_CLICKED, (void *)1);
 
     return elements;
+}
+
+// ============================================
+// === ЕКРАН ВИБОРУ ПАЦІЄНТА ===
+// ============================================
+
+// Event handler для вибору пацієнта
+static void patient_select_event_cb(lv_event_t *e)
+{
+    Serial.println("[ПОДІЯ] patient_select_event_cb ПОЧАТОК");
+    int patient_id = (int)(intptr_t)lv_event_get_user_data(e);
+    currentPatientIndex = patient_id;
+    
+    Serial.printf("[ПАЦІЄНТ] Обрано пацієнта %d - переходимо до головного меню\n", patient_id);
+    
+    // Переходимо до головного меню
+    current_state = STATE_MAIN_MENU;
+    state_start_time = lv_tick_get();
+    last_interaction_time = lv_tick_get();
+    create_main_menu();
+    Serial.println("[ПОДІЯ] patient_select_event_cb КІНЕЦЬ");
+}
+
+// Асинхронний callback для відкриття статистики (щоб уникнути проблем з видаленням об'єкта під час події)
+static void open_stats_async(void *user_data)
+{
+    Serial.println("[ASYNC] open_stats_async - СТВОРЕННЯ ЕКРАНУ СТАТИСТИКИ");
+    create_patient_stats_screen();
+    Serial.println("[ASYNC] open_stats_async - ЗАВЕРШЕНО");
+}
+
+// Event handler для перегляду статистики (довге натискання)
+static void patient_stats_event_cb(lv_event_t *e)
+{
+    Serial.println("[ПОДІЯ] patient_stats_event_cb - ДОВГЕ НАТИСКАННЯ ПОЧАТОК");
+    
+    int patient_id = (int)(intptr_t)lv_event_get_user_data(e);
+    currentPatientIndex = patient_id;
+    
+    Serial.printf("[ПАЦІЄНТ] Перегляд статистики пацієнта %d\n", patient_id);
+    
+    current_state = STATE_PATIENT_STATS;
+    state_start_time = lv_tick_get();
+    last_interaction_time = lv_tick_get();
+    
+    // Використовуємо асинхронний виклик, щоб уникнути проблем з видаленням об'єкта під час події
+    lv_async_call(open_stats_async, NULL);
+    
+    Serial.println("[ПОДІЯ] patient_stats_event_cb - ДОВГЕ НАТИСКАННЯ КІНЕЦЬ");
+}
+
+// Event handler для повернення з екрану статистики
+static void stats_back_event_cb(lv_event_t *e)
+{
+    Serial.println("[ПОДІЯ] stats_back_event_cb - НАТИСНУТО НАЗАД");
+    current_state = STATE_PATIENT_SELECT;
+    state_start_time = lv_tick_get();
+    last_interaction_time = lv_tick_get();
+    create_patient_select_screen();
+}
+
+// Event handler для очищення статистики
+static void clear_stats_event_cb(lv_event_t *e)
+{
+    clearPatientStats(currentPatientIndex);
+    create_patient_stats_screen();  // Оновлюємо екран
+}
+
+// Створення екрану вибору пацієнта
+void create_patient_select_screen()
+{
+    Serial.printf("[НАЛАГОДЖЕННЯ] Створення екрану вибору пацієнта... (current_state=%d)\n", (int)current_state);
+    lv_obj_clean(lv_scr_act());
+
+    // Фон
+    lv_obj_t *bg = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
+    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a2e), 0);
+    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_pos(bg, 0, 0);
+
+    // Заголовок
+    lv_obj_t *title = lv_label_create(lv_scr_act());
+    lv_label_set_text(title, "ОБЕРІТЬ ПАЦІЄНТА");
+    lv_obj_set_style_text_font(title, Font2, 0);
+    lv_obj_set_style_text_color(title, lv_color_white(), 0);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 15);
+
+    // Контейнер для кнопок з прокруткою
+    lv_obj_t *container = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(container, SCR_W - 20, SCR_H - 80);
+    lv_obj_align(container, LV_ALIGN_BOTTOM_MID, 0, -10);
+    lv_obj_set_style_bg_color(container, lv_color_hex(0x16213e), 0);
+    lv_obj_set_style_border_width(container, 0, 0);
+    lv_obj_set_style_pad_all(container, 10, 0);
+    lv_obj_set_flex_flow(container, LV_FLEX_FLOW_ROW_WRAP);
+    lv_obj_set_flex_align(container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_scroll_dir(container, LV_DIR_VER);
+
+    // Розмір кнопки (4 колонки)
+    int btn_width = (SCR_W - 80) / 4;
+    int btn_height = 90;  // Збільшена висота без окремої кнопки статистики
+
+    // Кольори для різних типів
+    uint32_t guest_color = 0x9b59b6;      // Фіолетовий для гостя
+    uint32_t patient_color = 0x3498db;    // Синій для пацієнтів
+
+    // Створюємо кнопки для всіх 16 пацієнтів (0 = гість, 1-15 = пацієнти)
+    for (int i = 0; i < PATIENT_COUNT; i++)
+    {
+        // Кнопка вибору пацієнта (коротке натискання - вибір, довге - статистика)
+        lv_obj_t *btn = lv_btn_create(container);
+        lv_obj_set_size(btn, btn_width - 10, btn_height);
+        
+        uint32_t color = (i == 0) ? guest_color : patient_color;
+        lv_obj_set_style_bg_color(btn, lv_color_hex(color), 0);
+        lv_obj_set_style_bg_color(btn, lv_color_hex(color - 0x222222), LV_STATE_PRESSED);
+        lv_obj_set_style_border_color(btn, lv_color_white(), 0);
+        lv_obj_set_style_border_width(btn, 2, 0);
+        lv_obj_set_style_radius(btn, 10, 0);
+
+        // Текст кнопки
+        lv_obj_t *label = lv_label_create(btn);
+        if (i == 0)
+        {
+            lv_label_set_text(label, "ГІСТЬ");
+        }
+        else
+        {
+            char buf[8];
+            snprintf(buf, sizeof(buf), "%d", i);
+            lv_label_set_text(label, buf);
+        }
+        lv_obj_set_style_text_font(label, Font3, 0);
+        lv_obj_set_style_text_color(label, lv_color_white(), 0);
+        lv_obj_center(label);
+
+        // Коротке натискання - вибір пацієнта
+        lv_obj_add_event_cb(btn, patient_select_event_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+        // Довге натискання - відкриття статистики
+        lv_obj_add_event_cb(btn, patient_stats_event_cb, LV_EVENT_LONG_PRESSED, (void *)(intptr_t)i);
+    }
+}
+
+// ============================================
+// === ЕКРАН СТАТИСТИКИ ПАЦІЄНТА ===
+// ============================================
+
+void create_patient_stats_screen()
+{
+    Serial.println("[STATS_SCR] Початок create_patient_stats_screen");
+    Serial.printf("[STATS_SCR] currentPatientIndex = %d\n", currentPatientIndex);
+    
+    Serial.println("[STATS_SCR] Очищаємо екран...");
+    lv_obj_clean(lv_scr_act());
+    Serial.println("[STATS_SCR] Екран очищено");
+
+    // Фон
+    Serial.println("[STATS_SCR] Створюємо фон...");
+    lv_obj_t *bg = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
+    lv_obj_set_pos(bg, 0, 0);
+    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a2e), 0);
+    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+    Serial.println("[STATS_SCR] Фон створено");
+
+    Serial.println("[STATS_SCR] Отримуємо статистику...");
+    PatientStats *stats = &patientStats[currentPatientIndex];
+    Serial.println("[STATS_SCR] Статистику отримано");
+
+    // Заголовок
+    Serial.println("[STATS_SCR] Створюємо заголовок...");
+    lv_obj_t *title = lv_label_create(lv_scr_act());
+    Serial.println("[STATS_SCR] Label створено");
+    
+    char title_buf[48];
+    if (currentPatientIndex == 0)
+    {
+        snprintf(title_buf, sizeof(title_buf), "ГІСТЬ");
+    }
+    else
+    {
+        snprintf(title_buf, sizeof(title_buf), "ПАЦІЄНТ %d", currentPatientIndex);
+    }
+    Serial.printf("[STATS_SCR] title_buf = %s\n", title_buf);
+    
+    lv_label_set_text(title, title_buf);
+    Serial.println("[STATS_SCR] Текст заголовка встановлено");
+    
+    Serial.printf("[STATS_SCR] Font2 = %p\n", (void*)Font2);
+    if (Font2 != NULL) {
+        lv_obj_set_style_text_font(title, Font2, 0);
+        Serial.println("[STATS_SCR] Шрифт заголовка встановлено");
+    } else {
+        Serial.println("[STATS_SCR] УВАГА: Font2 = NULL!");
+    }
+    
+    lv_obj_set_style_text_color(title, lv_color_white(), 0);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 20);
+    Serial.println("[STATS_SCR] Заголовок створено");
+
+    // Контейнер для статистики
+    Serial.println("[STATS_SCR] Створюємо контейнер...");
+    lv_obj_t *stats_container = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(stats_container, SCR_W - 60, SCR_H - 100);
+    lv_obj_align(stats_container, LV_ALIGN_BOTTOM_MID, 0, -10);
+    lv_obj_set_style_bg_color(stats_container, lv_color_hex(0x16213e), 0);
+    lv_obj_set_style_border_width(stats_container, 2, 0);
+    lv_obj_set_style_border_color(stats_container, lv_color_hex(0x3498db), 0);
+    lv_obj_set_style_pad_all(stats_container, 15, 0);
+    lv_obj_set_flex_flow(stats_container, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_scroll_dir(stats_container, LV_DIR_VER);
+    Serial.println("[STATS_SCR] Контейнер створено");
+
+    // Створюємо статистику окремими лейблами (для стабільності з Font3)
+    Serial.println("[STATS_SCR] Формуємо статистику...");
+    char line_buf[128];
+    lv_obj_t *lbl;
+    
+    // Влучність
+    int accuracy_pct = (stats->accuracy_total_hits + stats->accuracy_total_misses > 0) 
+        ? (stats->accuracy_total_hits * 100) / (stats->accuracy_total_hits + stats->accuracy_total_misses) : 0;
+    
+    // Середній час реакції
+    int avg_reaction = (stats->reaction_avg_count > 0) 
+        ? stats->reaction_avg_time_sum / stats->reaction_avg_count : 0;
+
+    // --- ВЛУЧНІСТЬ ---
+    lbl = lv_label_create(stats_container);
+    lv_label_set_text(lbl, "--- ВЛУЧНІСТЬ ---");
+    lv_obj_set_style_text_font(lbl, Font3, 0);
+    lv_obj_set_style_text_color(lbl, lv_color_hex(0x3498db), 0);
+    
+    lbl = lv_label_create(stats_container);
+    snprintf(line_buf, sizeof(line_buf), "Сесій: %d  Влучень: %d  Промахів: %d", 
+        stats->accuracy_sessions, stats->accuracy_total_hits, stats->accuracy_total_misses);
+    lv_label_set_text(lbl, line_buf);
+    lv_obj_set_style_text_font(lbl, Font3, 0);
+    lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
+    
+    lbl = lv_label_create(stats_container);
+    snprintf(line_buf, sizeof(line_buf), "Точність: %d%%  Рекорд: %d", accuracy_pct, stats->accuracy_best_score);
+    lv_label_set_text(lbl, line_buf);
+    lv_obj_set_style_text_font(lbl, Font3, 0);
+    lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
+
+    // --- РЕАКЦІЯ ---
+    lbl = lv_label_create(stats_container);
+    lv_label_set_text(lbl, "--- РЕАКЦІЯ ---");
+    lv_obj_set_style_text_font(lbl, Font3, 0);
+    lv_obj_set_style_text_color(lbl, lv_color_hex(0x2ecc71), 0);
+    
+    lbl = lv_label_create(stats_container);
+    snprintf(line_buf, sizeof(line_buf), "Сесій: %d  Рекорд: %d мс  Середнє: %d мс", 
+        stats->reaction_sessions, stats->reaction_best_time_ms, avg_reaction);
+    lv_label_set_text(lbl, line_buf);
+    lv_obj_set_style_text_font(lbl, Font3, 0);
+    lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
+
+    // --- ПАМ'ЯТЬ ---
+    lbl = lv_label_create(stats_container);
+    lv_label_set_text(lbl, "--- ПАМ'ЯТЬ ---");
+    lv_obj_set_style_text_font(lbl, Font3, 0);
+    lv_obj_set_style_text_color(lbl, lv_color_hex(0xe74c3c), 0);
+    
+    lbl = lv_label_create(stats_container);
+    snprintf(line_buf, sizeof(line_buf), "Сесій: %d  Макс. рівень: %d  Вірних: %d", 
+        stats->memory_sessions, stats->memory_best_level, stats->memory_total_correct);
+    lv_label_set_text(lbl, line_buf);
+    lv_obj_set_style_text_font(lbl, Font3, 0);
+    lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
+
+    // --- КООРДИНАЦІЯ ---
+    lbl = lv_label_create(stats_container);
+    lv_label_set_text(lbl, "--- КООРДИНАЦІЯ ---");
+    lv_obj_set_style_text_font(lbl, Font3, 0);
+    lv_obj_set_style_text_color(lbl, lv_color_hex(0x9b59b6), 0);
+    
+    lbl = lv_label_create(stats_container);
+    snprintf(line_buf, sizeof(line_buf), "Сесій: %d  Рекорд: %d  Влучень: %d", 
+        stats->coordination_sessions, stats->coordination_best_score, stats->coordination_total_hits);
+    lv_label_set_text(lbl, line_buf);
+    lv_obj_set_style_text_font(lbl, Font3, 0);
+    lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
+    
+    Serial.println("[STATS_SCR] Статистика створена");
+
+    // Кнопка очищення статистики (у верхньому лівому куті)
+    Serial.println("[STATS_SCR] Створюємо кнопку CLEAR...");
+    lv_obj_t *clear_btn = lv_btn_create(lv_scr_act());
+    lv_obj_set_size(clear_btn, 140, 50);
+    lv_obj_align(clear_btn, LV_ALIGN_TOP_LEFT, 10, 10);
+    lv_obj_set_style_bg_color(clear_btn, lv_color_hex(COLOR_BTN_RED), 0);
+    lv_obj_set_style_bg_color(clear_btn, lv_color_hex(COLOR_BTN_RED_PRESSED), LV_STATE_PRESSED);
+
+    lv_obj_t *clear_label = lv_label_create(clear_btn);
+    lv_label_set_text(clear_label, "ОЧИСТИТИ");
+    lv_obj_set_style_text_font(clear_label, Font3, 0);
+    lv_obj_set_style_text_color(clear_label, lv_color_white(), 0);
+    lv_obj_center(clear_label);
+
+    lv_obj_add_event_cb(clear_btn, clear_stats_event_cb, LV_EVENT_CLICKED, NULL);
+    Serial.println("[STATS_SCR] Кнопка CLEAR створена");
+
+    // Кнопка назад (у верхньому правому куті)
+    Serial.println("[STATS_SCR] Створюємо кнопку BACK...");
+    lv_obj_t *back_btn = lv_btn_create(lv_scr_act());
+    lv_obj_set_size(back_btn, 140, 50);
+    lv_obj_align(back_btn, LV_ALIGN_TOP_RIGHT, -10, 10);
+    lv_obj_set_style_bg_color(back_btn, lv_color_hex(COLOR_BTN_BACK), 0);
+    lv_obj_set_style_bg_color(back_btn, lv_color_hex(COLOR_BTN_BACK_PRESSED), LV_STATE_PRESSED);
+
+    lv_obj_t *back_label_txt = lv_label_create(back_btn);
+    lv_label_set_text(back_label_txt, "НАЗАД");
+    lv_obj_set_style_text_font(back_label_txt, Font3, 0);
+    lv_obj_set_style_text_color(back_label_txt, lv_color_white(), 0);
+    lv_obj_center(back_label_txt);
+
+    lv_obj_add_event_cb(back_btn, stats_back_event_cb, LV_EVENT_CLICKED, NULL);
+    Serial.println("[STATS_SCR] ЕКРАН СТАТИСТИКИ ГОТОВИЙ!");
 }

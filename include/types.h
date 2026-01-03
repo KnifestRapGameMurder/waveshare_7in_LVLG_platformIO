@@ -114,4 +114,33 @@ struct Button_t
   void (*action)();
 };
 
+// === КІЛЬКІСТЬ ПАЦІЄНТІВ ===
+#define PATIENT_COUNT 16  // 15 пацієнтів + 1 гість (індекс 0)
+
+// === СТАТИСТИКА ПАЦІЄНТА ===
+struct PatientStats
+{
+  // Влучність (Accuracy)
+  uint16_t accuracy_sessions;      // Кількість сесій
+  uint16_t accuracy_total_hits;    // Загальна кількість влучань
+  uint16_t accuracy_total_misses;  // Загальна кількість промахів
+  uint16_t accuracy_best_score;    // Найкращий результат
+
+  // Реакція (Reaction)
+  uint16_t reaction_sessions;      // Кількість сесій
+  uint16_t reaction_best_time_ms;  // Найкращий час реакції (мс)
+  uint32_t reaction_avg_time_sum;  // Сума часів для середнього
+  uint16_t reaction_avg_count;     // Кількість вимірювань
+
+  // Пам'ять (Memory)
+  uint16_t memory_sessions;        // Кількість сесій
+  uint16_t memory_best_level;      // Найкращий рівень
+  uint16_t memory_total_correct;   // Загальна кількість правильних
+
+  // Координація (Coordination)
+  uint16_t coordination_sessions;  // Кількість сесій
+  uint16_t coordination_best_score;// Найкращий результат
+  uint16_t coordination_total_hits;// Загальна кількість влучань
+};
+
 #endif // TYPES_H

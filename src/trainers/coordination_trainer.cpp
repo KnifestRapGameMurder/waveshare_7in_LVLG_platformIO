@@ -1,6 +1,7 @@
 #include "coordination_trainer.h"
 #include "hardware_abstraction.h"
 #include "app_screens.h"
+#include "globals.h"
 #include <Arduino.h>
 #include <lvgl.h>
 #include "fonts.h"
@@ -360,6 +361,17 @@ static void display_results()
 
     int max_level = (current_submenu_state == CS_EASY_MODE) ? 
         COORDINATION_EASY_MAX_LEDS : COORDINATION_HARD_MAX_LEDS;
+    
+    // === Зберігаємо статистику пацієнта ===
+    PatientStats *stats = &patientStats[currentPatientIndex];
+    stats->coordination_sessions++;
+    stats->coordination_total_hits += correct_coordination_presses;
+    if (current_level > stats->coordination_best_score)
+    {
+        stats->coordination_best_score = current_level;
+    }
+    savePatientStats(currentPatientIndex);
+    // =======================================
     
     char results_text[32];
     snprintf(results_text, sizeof(results_text),

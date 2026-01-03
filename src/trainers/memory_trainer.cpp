@@ -1,6 +1,7 @@
 #include "memory_trainer.h"
 #include "hardware_abstraction.h"
 #include "app_screens.h"
+#include "globals.h"
 #include <Arduino.h>
 #include <lvgl.h>
 #include "fonts.h"
@@ -466,6 +467,17 @@ static void display_results()
 
     int achieved_level = current_sequence_length - 1;
     if (achieved_level < 0) achieved_level = 0;
+    
+    // === Зберігаємо статистику пацієнта ===
+    PatientStats *stats = &patientStats[currentPatientIndex];
+    stats->memory_sessions++;
+    stats->memory_total_correct += achieved_level;
+    if (achieved_level > stats->memory_best_level)
+    {
+        stats->memory_best_level = achieved_level;
+    }
+    savePatientStats(currentPatientIndex);
+    // =======================================
     
     char results_text[32];
     snprintf(results_text, sizeof(results_text),

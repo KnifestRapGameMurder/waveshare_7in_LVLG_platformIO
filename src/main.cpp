@@ -16,6 +16,7 @@
 // Include external components
 #include "loading_screen.h"
 #include "app_screens.h" // New: Includes AppState, extern vars, and screen creation functions
+#include "globals.h"     // Patient system functions
 
 using namespace esp_panel::drivers;
 using namespace esp_panel::board;
@@ -72,12 +73,11 @@ static void app_timer_cb(lv_timer_t *timer)
 
         if ((now - last_interaction_time) >= IDLE_TIMEOUT)
         {
-            Serial.println("[ТАЙМ-АУТ] Досягнуто тайм-аут бездіяльності - повернення до екрану завантаження");
+            Serial.println("[ТАЙМ-АУТ MAIN.CPP] Досягнуто тайм-аут бездіяльності - повернення до вибору пацієнта");
             lvgl_port_lock(-1); // Lock for UI changes
-            current_state = STATE_LOADING;
+            current_state = STATE_PATIENT_SELECT;
             state_start_time = now;
-            // Uses app_screen_touch_cb from app_screens.h
-            loading_screen_create(app_screen_touch_cb);
+            create_patient_select_screen();
             lvgl_port_unlock(); // Unlock
             return;
         }
@@ -220,6 +220,9 @@ void setup()
 
     // Initialize orbit parameters using the new function
     loading_screen_init_params(SCR_W, SCR_H);
+
+    // Initialize patient system
+    initPatientSystem();
 
     // Initialize app state
     current_state = STATE_LOADING;
