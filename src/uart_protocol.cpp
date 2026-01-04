@@ -31,6 +31,11 @@ String UARTProtocol::createLEDClearMessage(const String &hexColor)
     return String(MSG_TYPE_CMD) + MSG_SEPARATOR + CMD_LEDS + MSG_SEPARATOR + CMD_LED_CLEAR + MSG_SEPARATOR + hexColor;
 }
 
+String UARTProtocol::createAudioMessage(const String &audioId)
+{
+    return String(MSG_TYPE_CMD) + MSG_SEPARATOR + CMD_AUDIO + MSG_SEPARATOR + audioId;
+}
+
 String UARTProtocol::createRequestButtonsMessage()
 {
     return String(MSG_TYPE_CMD) + MSG_SEPARATOR + CMD_REQUEST + MSG_SEPARATOR + CMD_BUTTONS;

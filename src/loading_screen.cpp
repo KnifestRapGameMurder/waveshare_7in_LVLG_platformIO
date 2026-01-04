@@ -5,6 +5,7 @@
  */
 
 #include "loading_screen.h"
+#include "globals.h"
 #include <math.h>
 #include <stdio.h>
 #include <Arduino.h>
@@ -197,6 +198,7 @@ void loading_screen_create(ScreenTransitionCallback_t transition_cb)
 {
     // Clean the current screen
     lv_obj_clean(lv_scr_act());
+    markScreenTransition();
 
     // Create gradient background object
     gradient_obj = lv_obj_create(lv_scr_act());

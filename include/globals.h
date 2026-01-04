@@ -60,6 +60,13 @@ extern int currentSurvivalDurationMinutes;
 // === ЗМІННІ ЗАПОБІГАННЯ ПОВТОРЕНЬ ===
 extern int lastSurvivalTargetButton;
 
+// === ЗАХИСТ ВІД ФАНТОМНИХ КЛІКІВ ПРИ ПЕРЕХОДІ ЕКРАНІВ ===
+extern uint32_t screen_transition_time;      // Час останнього переходу екрану
+#define SCREEN_TRANSITION_GUARD_MS 100       // Мінімальний час захисту (мс)
+bool isScreenTransitionActive();             // Перевірка чи активний захист
+void markScreenTransition();                 // Позначити момент переходу екрану
+void markTouchReleased();                    // Для сумісності (не використовується)
+
 // === СИСТЕМА ПАЦІЄНТІВ ===
 extern int currentPatientIndex;              // Поточний вибраний пацієнт (0 = гість)
 extern PatientStats patientStats[PATIENT_COUNT];  // Статистика всіх пацієнтів
@@ -75,5 +82,10 @@ void addAccuracySession(int patientIndex, uint16_t score, uint16_t accuracy_pct)
 void addReactionSession(int patientIndex, uint16_t time_ms, uint16_t attempts);
 void addMemorySession(int patientIndex, uint16_t level, uint16_t correct);
 void addCoordinationSession(int patientIndex, uint16_t score, uint16_t hits);
+
+// === АУДІО ПІДКАЗКИ ===
+// Надсилає команду відтворення аудіо на ESP32 DevKit
+// Використання: playAudioPrompt(AUDIO_EXCELLENT);
+void playAudioPrompt(const char* audioId);
 
 #endif // GLOBALS_H

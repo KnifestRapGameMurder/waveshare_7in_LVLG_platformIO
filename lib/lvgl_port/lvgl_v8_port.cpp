@@ -9,6 +9,7 @@
 #define ESP_UTILS_LOG_TAG "LvPort"
 #include "esp_lib_utils.h"
 #include "lvgl_v8_port.h"
+#include "globals.h"  // Для markTouchReleased()
 
 using namespace esp_panel::drivers;
 
@@ -642,6 +643,7 @@ static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
 {
     Touch *tp = (Touch *)indev_drv->user_data;
     TouchPoint point;
+    static bool was_pressed = false;
 
     /* Read data from touch controller */
     int read_touch_result = tp->readPoints(&point, 1, 0);
@@ -649,8 +651,14 @@ static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
         data->point.x = point.x;
         data->point.y = point.y;
         data->state = LV_INDEV_STATE_PRESSED;
+        was_pressed = true;
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
+        // Якщо палець був натиснутий і тепер відпущений - сигналізуємо
+        if (was_pressed) {
+            was_pressed = false;
+            markTouchReleased();
+        }
     }
 }
 

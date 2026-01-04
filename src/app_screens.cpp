@@ -43,6 +43,7 @@ static TrainerType selected_trainer = TRAINER_ACCURACY;
 // Event handlers
 static void accuracy_difficulty_event_cb(lv_event_t *e)
 {
+    if (isScreenTransitionActive()) return;
     int difficulty = (int)(intptr_t)lv_event_get_user_data(e);
     switch (difficulty)
     {
@@ -62,6 +63,7 @@ static void accuracy_difficulty_event_cb(lv_event_t *e)
 
 static void reaction_mode_event_cb(lv_event_t *e)
 {
+    if (isScreenTransitionActive()) return;
     int mode = (int)(intptr_t)lv_event_get_user_data(e);
     if (mode == 0)
     {
@@ -78,6 +80,7 @@ static void reaction_mode_event_cb(lv_event_t *e)
 
 static void coordination_difficulty_event_cb(lv_event_t *e)
 {
+    if (isScreenTransitionActive()) return;
     int difficulty = (int)(intptr_t)lv_event_get_user_data(e);
     if (difficulty == 0)
         set_coordination_easy_mode();
@@ -89,6 +92,7 @@ static void coordination_difficulty_event_cb(lv_event_t *e)
 
 static void survival_duration_event_cb(lv_event_t *e)
 {
+    if (isScreenTransitionActive()) return;
     int duration = (int)(intptr_t)lv_event_get_user_data(e);
     switch (duration)
     {
@@ -110,6 +114,7 @@ static void survival_duration_event_cb(lv_event_t *e)
 // Button event handler for main menu
 static void menu_button_event_cb(lv_event_t *event)
 {
+    if (isScreenTransitionActive()) return;
     lv_obj_t *btn = lv_event_get_target(event);
     int trainer_id = (int)(intptr_t)lv_event_get_user_data(event);
 
@@ -148,6 +153,7 @@ static void menu_button_event_cb(lv_event_t *event)
 // Back button event handler
 static void back_button_event_cb(lv_event_t *event)
 {
+    if (isScreenTransitionActive()) return;
     Serial.println("[НАЗАД] Натиснуто кнопку назад - повернення до головного меню");
     // Update interaction time to reset idle timeout (uses extern var)
     last_interaction_time = lv_tick_get();
@@ -165,6 +171,13 @@ static void back_button_event_cb(lv_event_t *event)
 void app_screen_touch_cb(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
+    
+    // Відстежуємо відпускання пальця для захисту від фантомних кліків
+    if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST) {
+        markTouchReleased();
+    }
+    
+    if (isScreenTransitionActive()) return;
 
     if (current_state == STATE_LOADING)
     {
@@ -189,6 +202,7 @@ void create_main_menu()
 {
     Serial.println("[НАЛАГОДЖЕННЯ] Створення головного меню...");
     lv_obj_clean(lv_scr_act());
+    markScreenTransition();
 
     // Create 4 trainer buttons taking all screen space in 2x2 grid
     const char *trainer_names[] = {
@@ -238,8 +252,8 @@ void create_main_menu()
         lv_obj_set_style_text_color(label, lv_color_white(), 0);
         lv_obj_center(label);
 
-        // Add event handler
-        lv_obj_add_event_cb(menu_buttons[i], menu_button_event_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+        // Add event handler - реагуємо на відпускання пальця
+        lv_obj_add_event_cb(menu_buttons[i], menu_button_event_cb, LV_EVENT_RELEASED, (void *)(intptr_t)i);
     }
 
     // At the end of each create_ function, replace the repeated block with:
@@ -251,6 +265,7 @@ void create_trainer_screen(int trainer_id)
 {
     Serial.printf("[НАЛАГОДЖЕННЯ] Створення екрану тренажера %d...\n", trainer_id + 1);
     lv_obj_clean(lv_scr_act());
+    markScreenTransition();
 
     // Create dark background
     create_dark_background();
@@ -280,13 +295,14 @@ void create_trainer_screen(int trainer_id)
     lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
     lv_obj_center(back_label);
 
-    lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_RELEASED, NULL);
 }
 
 // Create accuracy difficulty submenu
 void create_accuracy_difficulty_submenu()
 {
     lv_obj_clean(lv_scr_act());
+    markScreenTransition();
 
     // Create dark background
     create_dark_background();
@@ -310,7 +326,7 @@ void create_accuracy_difficulty_submenu()
     lv_obj_set_style_text_font(easy_label, Font2, 0);
     lv_obj_center(easy_label);
 
-    lv_obj_add_event_cb(easy_btn, accuracy_difficulty_event_cb, LV_EVENT_CLICKED, (void *)0);
+    lv_obj_add_event_cb(easy_btn, accuracy_difficulty_event_cb, LV_EVENT_RELEASED, (void *)0);
 
     // Medium button
     lv_obj_t *medium_btn = lv_btn_create(lv_scr_act());
@@ -324,7 +340,7 @@ void create_accuracy_difficulty_submenu()
     lv_obj_set_style_text_font(medium_label, Font2, 0);
     lv_obj_center(medium_label);
 
-    lv_obj_add_event_cb(medium_btn, accuracy_difficulty_event_cb, LV_EVENT_CLICKED, (void *)1);
+    lv_obj_add_event_cb(medium_btn, accuracy_difficulty_event_cb, LV_EVENT_RELEASED, (void *)1);
 
     // Hard button
     lv_obj_t *hard_btn = lv_btn_create(lv_scr_act());
@@ -338,7 +354,7 @@ void create_accuracy_difficulty_submenu()
     lv_obj_set_style_text_font(hard_label, Font2, 0);
     lv_obj_center(hard_label);
 
-    lv_obj_add_event_cb(hard_btn, accuracy_difficulty_event_cb, LV_EVENT_CLICKED, (void *)2);
+    lv_obj_add_event_cb(hard_btn, accuracy_difficulty_event_cb, LV_EVENT_RELEASED, (void *)2);
 
     // Back button
     create_back_button();
@@ -349,7 +365,7 @@ void create_accuracy_difficulty_submenu()
     lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
     lv_obj_center(back_label);
 
-    lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_RELEASED, NULL);
 
     // At the end of each create_ function, replace the repeated block with:
     create_debug_label();
@@ -359,6 +375,7 @@ void create_accuracy_difficulty_submenu()
 void create_reaction_submenu()
 {
     lv_obj_clean(lv_scr_act());
+    markScreenTransition();
 
     // Create dark background
     create_dark_background();
@@ -382,7 +399,7 @@ void create_reaction_submenu()
     lv_obj_set_style_text_font(trial_label, Font2, 0);
     lv_obj_center(trial_label);
 
-    lv_obj_add_event_cb(trial_btn, reaction_mode_event_cb, LV_EVENT_CLICKED, (void *)0);
+    lv_obj_add_event_cb(trial_btn, reaction_mode_event_cb, LV_EVENT_RELEASED, (void *)0);
 
     // Survival button
     lv_obj_t *survival_btn = lv_btn_create(lv_scr_act());
@@ -396,7 +413,7 @@ void create_reaction_submenu()
     lv_obj_set_style_text_font(survival_label, Font2, 0);
     lv_obj_center(survival_label);
 
-    lv_obj_add_event_cb(survival_btn, reaction_mode_event_cb, LV_EVENT_CLICKED, (void *)1);
+    lv_obj_add_event_cb(survival_btn, reaction_mode_event_cb, LV_EVENT_RELEASED, (void *)1);
 
     // Back button
     create_back_button();
@@ -407,7 +424,7 @@ void create_reaction_submenu()
     lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
     lv_obj_center(back_label);
 
-    lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_RELEASED, NULL);
 
     // At the end of each create_ function, replace the repeated block with:
     create_debug_label();
@@ -417,6 +434,7 @@ void create_reaction_submenu()
 void create_coordination_submenu()
 {
     lv_obj_clean(lv_scr_act());
+    markScreenTransition();
 
     // Create dark background
     create_dark_background();
@@ -440,7 +458,7 @@ void create_coordination_submenu()
     lv_obj_set_style_text_font(easy_label, Font2, 0);
     lv_obj_center(easy_label);
 
-    lv_obj_add_event_cb(easy_btn, coordination_difficulty_event_cb, LV_EVENT_CLICKED, (void *)0);
+    lv_obj_add_event_cb(easy_btn, coordination_difficulty_event_cb, LV_EVENT_RELEASED, (void *)0);
 
     // Hard button
     lv_obj_t *hard_btn = lv_btn_create(lv_scr_act());
@@ -454,7 +472,7 @@ void create_coordination_submenu()
     lv_obj_set_style_text_font(hard_label, Font2, 0);
     lv_obj_center(hard_label);
 
-    lv_obj_add_event_cb(hard_btn, coordination_difficulty_event_cb, LV_EVENT_CLICKED, (void *)1);
+    lv_obj_add_event_cb(hard_btn, coordination_difficulty_event_cb, LV_EVENT_RELEASED, (void *)1);
 
     // Back button
     create_back_button();
@@ -465,7 +483,7 @@ void create_coordination_submenu()
     lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
     lv_obj_center(back_label);
 
-    lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_RELEASED, NULL);
 
     // At the end of each create_ function, replace the repeated block with:
     create_debug_label();
@@ -475,6 +493,7 @@ void create_coordination_submenu()
 void create_reaction_survival_submenu()
 {
     lv_obj_clean(lv_scr_act());
+    markScreenTransition();
 
     // Create dark background
     create_dark_background();
@@ -498,7 +517,7 @@ void create_reaction_survival_submenu()
     lv_obj_set_style_text_font(min1_label, Font2, 0);
     lv_obj_center(min1_label);
 
-    lv_obj_add_event_cb(min1_btn, survival_duration_event_cb, LV_EVENT_CLICKED, (void *)1);
+    lv_obj_add_event_cb(min1_btn, survival_duration_event_cb, LV_EVENT_RELEASED, (void *)1);
 
     // 2 minutes button
     lv_obj_t *min2_btn = lv_btn_create(lv_scr_act());
@@ -512,7 +531,7 @@ void create_reaction_survival_submenu()
     lv_obj_set_style_text_font(min2_label, Font2, 0);
     lv_obj_center(min2_label);
 
-    lv_obj_add_event_cb(min2_btn, survival_duration_event_cb, LV_EVENT_CLICKED, (void *)2);
+    lv_obj_add_event_cb(min2_btn, survival_duration_event_cb, LV_EVENT_RELEASED, (void *)2);
 
     // 3 minutes button
     lv_obj_t *min3_btn = lv_btn_create(lv_scr_act());
@@ -526,7 +545,7 @@ void create_reaction_survival_submenu()
     lv_obj_set_style_text_font(min3_label, Font2, 0);
     lv_obj_center(min3_label);
 
-    lv_obj_add_event_cb(min3_btn, survival_duration_event_cb, LV_EVENT_CLICKED, (void *)3);
+    lv_obj_add_event_cb(min3_btn, survival_duration_event_cb, LV_EVENT_RELEASED, (void *)3);
 
     // Back button
     create_back_button();
@@ -537,7 +556,7 @@ void create_reaction_survival_submenu()
     lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
     lv_obj_center(back_label);
 
-    lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(back_button, back_button_event_cb, LV_EVENT_RELEASED, NULL);
 
     // At the end of each create_ function, replace the repeated block with:
     create_debug_label();
@@ -589,6 +608,7 @@ TrainerScreenElements create_trainer_screen_base(lv_event_cb_t back_event_cb)
 
     // Clean the screen
     lv_obj_clean(lv_scr_act());
+    markScreenTransition();
 
     // Create main screen container
     elements.screen = lv_obj_create(lv_scr_act());
@@ -630,7 +650,7 @@ TrainerScreenElements create_trainer_screen_base(lv_event_cb_t back_event_cb)
     lv_obj_set_style_text_color(back_label, lv_color_white(), 0);
     lv_obj_center(back_label);
 
-    lv_obj_add_event_cb(elements.back_btn, back_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(elements.back_btn, back_event_cb, LV_EVENT_RELEASED, NULL);
 
     return elements;
 }
@@ -662,7 +682,7 @@ GameOverMenuElements create_game_over_menu(lv_obj_t *parent, lv_obj_t *info_lbl,
     lv_obj_set_style_text_font(play_label, Font2, 0);
     lv_obj_center(play_label);
 
-    lv_obj_add_event_cb(elements.play_again_btn, event_cb, LV_EVENT_CLICKED, (void *)0);
+    lv_obj_add_event_cb(elements.play_again_btn, event_cb, LV_EVENT_RELEASED, (void *)0);
 
     // Create exit button
     elements.exit_btn = lv_btn_create(parent);
@@ -676,7 +696,7 @@ GameOverMenuElements create_game_over_menu(lv_obj_t *parent, lv_obj_t *info_lbl,
     lv_obj_set_style_text_font(exit_label, Font2, 0);
     lv_obj_center(exit_label);
 
-    lv_obj_add_event_cb(elements.exit_btn, event_cb, LV_EVENT_CLICKED, (void *)1);
+    lv_obj_add_event_cb(elements.exit_btn, event_cb, LV_EVENT_RELEASED, (void *)1);
 
     return elements;
 }
@@ -685,9 +705,24 @@ GameOverMenuElements create_game_over_menu(lv_obj_t *parent, lv_obj_t *info_lbl,
 // === ЕКРАН ВИБОРУ ПАЦІЄНТА ===
 // ============================================
 
+// Прапорець для ігнорування RELEASED після LONG_PRESSED
+static bool patient_long_press_triggered = false;
+
 // Event handler для вибору пацієнта
 static void patient_select_event_cb(lv_event_t *e)
 {
+    // Ігноруємо RELEASED якщо це йде після довгого натискання
+    if (patient_long_press_triggered) {
+        patient_long_press_triggered = false;
+        Serial.println("[ПОДІЯ] patient_select_event_cb - ІГНОРОВАНО (після довгого натискання)");
+        return;
+    }
+    
+    // Захист від фантомних кліків при переході екранів
+    if (isScreenTransitionActive()) {
+        Serial.println("[ПОДІЯ] patient_select_event_cb - ІГНОРОВАНО (захист переходу)");
+        return;
+    }
     Serial.println("[ПОДІЯ] patient_select_event_cb ПОЧАТОК");
     int patient_id = (int)(intptr_t)lv_event_get_user_data(e);
     currentPatientIndex = patient_id;
@@ -713,6 +748,15 @@ static void open_stats_async(void *user_data)
 // Event handler для перегляду статистики (довге натискання)
 static void patient_stats_event_cb(lv_event_t *e)
 {
+    // Захист від фантомних кліків при переході екранів
+    if (isScreenTransitionActive()) {
+        Serial.println("[ПОДІЯ] patient_stats_event_cb - ІГНОРОВАНО (захист переходу)");
+        return;
+    }
+    
+    // Встановлюємо прапорець щоб ігнорувати наступний RELEASED
+    patient_long_press_triggered = true;
+    
     Serial.println("[ПОДІЯ] patient_stats_event_cb - ДОВГЕ НАТИСКАННЯ ПОЧАТОК");
     
     int patient_id = (int)(intptr_t)lv_event_get_user_data(e);
@@ -733,6 +777,8 @@ static void patient_stats_event_cb(lv_event_t *e)
 // Event handler для повернення з екрану статистики
 static void stats_back_event_cb(lv_event_t *e)
 {
+    // Захист від фантомних кліків
+    if (isScreenTransitionActive()) return;
     Serial.println("[ПОДІЯ] stats_back_event_cb - НАТИСНУТО НАЗАД");
     current_state = STATE_PATIENT_SELECT;
     state_start_time = lv_tick_get();
@@ -743,6 +789,7 @@ static void stats_back_event_cb(lv_event_t *e)
 // Event handler для очищення статистики
 static void clear_stats_event_cb(lv_event_t *e)
 {
+    if (isScreenTransitionActive()) return;
     clearPatientStats(currentPatientIndex);
     create_patient_stats_screen();  // Оновлюємо екран
 }
@@ -752,6 +799,7 @@ void create_patient_select_screen()
 {
     Serial.printf("[НАЛАГОДЖЕННЯ] Створення екрану вибору пацієнта... (current_state=%d)\n", (int)current_state);
     lv_obj_clean(lv_scr_act());
+    markScreenTransition();
 
     // Фон
     lv_obj_t *bg = lv_obj_create(lv_scr_act());
@@ -816,8 +864,8 @@ void create_patient_select_screen()
         lv_obj_set_style_text_color(label, lv_color_white(), 0);
         lv_obj_center(label);
 
-        // Коротке натискання - вибір пацієнта
-        lv_obj_add_event_cb(btn, patient_select_event_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+        // Коротке натискання - вибір пацієнта (при відпусканні пальця)
+        lv_obj_add_event_cb(btn, patient_select_event_cb, LV_EVENT_RELEASED, (void *)(intptr_t)i);
         // Довге натискання - відкриття статистики
         lv_obj_add_event_cb(btn, patient_stats_event_cb, LV_EVENT_LONG_PRESSED, (void *)(intptr_t)i);
     }
@@ -833,6 +881,8 @@ void create_patient_stats_screen();
 // Обробник повернення з історії до статистики
 static void history_back_event_cb(lv_event_t *e)
 {
+    // Захист від фантомних кліків
+    if (isScreenTransitionActive()) return;
     Serial.println("[HISTORY] Повернення до статистики");
     create_patient_stats_screen();
 }
@@ -842,6 +892,7 @@ void create_session_history_screen()
 {
     Serial.printf("[HISTORY] Створення екрану історії для тренажера %d\n", (int)selected_trainer);
     lv_obj_clean(lv_scr_act());
+    markScreenTransition();
 
     PatientStats *stats = &patientStats[currentPatientIndex];
     
@@ -960,12 +1011,17 @@ void create_session_history_screen()
     lv_obj_set_style_text_color(back_label_txt, lv_color_white(), 0);
     lv_obj_center(back_label_txt);
 
-    lv_obj_add_event_cb(back_btn, history_back_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(back_btn, history_back_event_cb, LV_EVENT_RELEASED, NULL);
 }
 
 // Обробник кліку по назві тренажера
 static void trainer_click_event_cb(lv_event_t *e)
 {
+    // Захист від фантомних кліків при переході екранів
+    if (isScreenTransitionActive()) {
+        Serial.println("[STATS] trainer_click - ІГНОРОВАНО (захист переходу)");
+        return;
+    }
     TrainerType type = (TrainerType)(intptr_t)lv_event_get_user_data(e);
     selected_trainer = type;
     Serial.printf("[STATS] Клік по тренажеру: %d\n", (int)type);
@@ -983,6 +1039,7 @@ void create_patient_stats_screen()
     
     Serial.println("[STATS_SCR] Очищаємо екран...");
     lv_obj_clean(lv_scr_act());
+    markScreenTransition();
     Serial.println("[STATS_SCR] Екран очищено");
 
     // Фон
@@ -1068,7 +1125,7 @@ void create_patient_stats_screen()
     lv_obj_set_style_text_font(trainer_lbl, Font3, 0);
     lv_obj_set_style_text_color(trainer_lbl, lv_color_white(), 0);
     lv_obj_center(trainer_lbl);
-    lv_obj_add_event_cb(trainer_btn, trainer_click_event_cb, LV_EVENT_CLICKED, (void*)(intptr_t)TRAINER_ACCURACY);
+    lv_obj_add_event_cb(trainer_btn, trainer_click_event_cb, LV_EVENT_RELEASED, (void*)(intptr_t)TRAINER_ACCURACY);
     
     lbl = lv_label_create(stats_container);
     snprintf(line_buf, sizeof(line_buf), "Сесій: %d  Влучень: %d  Промахів: %d", 
@@ -1094,7 +1151,7 @@ void create_patient_stats_screen()
     lv_obj_set_style_text_font(trainer_lbl, Font3, 0);
     lv_obj_set_style_text_color(trainer_lbl, lv_color_white(), 0);
     lv_obj_center(trainer_lbl);
-    lv_obj_add_event_cb(trainer_btn, trainer_click_event_cb, LV_EVENT_CLICKED, (void*)(intptr_t)TRAINER_REACTION);
+    lv_obj_add_event_cb(trainer_btn, trainer_click_event_cb, LV_EVENT_RELEASED, (void*)(intptr_t)TRAINER_REACTION);
     
     lbl = lv_label_create(stats_container);
     snprintf(line_buf, sizeof(line_buf), "Сесій: %d  Рекорд: %d мс  Середнє: %d мс", 
@@ -1114,7 +1171,7 @@ void create_patient_stats_screen()
     lv_obj_set_style_text_font(trainer_lbl, Font3, 0);
     lv_obj_set_style_text_color(trainer_lbl, lv_color_white(), 0);
     lv_obj_center(trainer_lbl);
-    lv_obj_add_event_cb(trainer_btn, trainer_click_event_cb, LV_EVENT_CLICKED, (void*)(intptr_t)TRAINER_MEMORY);
+    lv_obj_add_event_cb(trainer_btn, trainer_click_event_cb, LV_EVENT_RELEASED, (void*)(intptr_t)TRAINER_MEMORY);
     
     lbl = lv_label_create(stats_container);
     snprintf(line_buf, sizeof(line_buf), "Сесій: %d  Макс. рівень: %d  Вірних: %d", 
@@ -1134,7 +1191,7 @@ void create_patient_stats_screen()
     lv_obj_set_style_text_font(trainer_lbl, Font3, 0);
     lv_obj_set_style_text_color(trainer_lbl, lv_color_white(), 0);
     lv_obj_center(trainer_lbl);
-    lv_obj_add_event_cb(trainer_btn, trainer_click_event_cb, LV_EVENT_CLICKED, (void*)(intptr_t)TRAINER_COORDINATION);
+    lv_obj_add_event_cb(trainer_btn, trainer_click_event_cb, LV_EVENT_RELEASED, (void*)(intptr_t)TRAINER_COORDINATION);
     
     lbl = lv_label_create(stats_container);
     snprintf(line_buf, sizeof(line_buf), "Сесій: %d  Рекорд: %d  Влучень: %d", 
@@ -1159,7 +1216,7 @@ void create_patient_stats_screen()
     lv_obj_set_style_text_color(clear_label, lv_color_white(), 0);
     lv_obj_center(clear_label);
 
-    lv_obj_add_event_cb(clear_btn, clear_stats_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(clear_btn, clear_stats_event_cb, LV_EVENT_RELEASED, NULL);
     Serial.println("[STATS_SCR] Кнопка CLEAR створена");
 
     // Кнопка назад (у верхньому правому куті)
@@ -1176,6 +1233,6 @@ void create_patient_stats_screen()
     lv_obj_set_style_text_color(back_label_txt, lv_color_white(), 0);
     lv_obj_center(back_label_txt);
 
-    lv_obj_add_event_cb(back_btn, stats_back_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(back_btn, stats_back_event_cb, LV_EVENT_RELEASED, NULL);
     Serial.println("[STATS_SCR] ЕКРАН СТАТИСТИКИ ГОТОВИЙ!");
 }

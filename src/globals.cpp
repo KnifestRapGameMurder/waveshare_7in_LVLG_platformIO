@@ -1,5 +1,9 @@
 #include "globals.h"
+#include "uart_protocol.h"
 #include <Preferences.h>
+
+// Зовнішнє посилання на UART протокол (визначений в main.cpp)
+extern UARTProtocol uart_protocol;
 
 // === КОЛЬОРИ ===
 RgbColor red = {255, 0, 0};
@@ -56,6 +60,40 @@ int currentSurvivalDurationMinutes = 0;
 
 // === ЗМІННІ ЗАПОБІГАННЯ ПОВТОРЕНЬ ===
 int lastSurvivalTargetButton = -1;
+
+// === ЗАХИСТ ВІД ФАНТОМНИХ КЛІКІВ ПРИ ПЕРЕХОДІ ЕКРАНІВ ===
+uint32_t screen_transition_time = 0;
+
+bool isScreenTransitionActive()
+{
+    // Простий часовий guard - блокуємо кліки протягом SCREEN_TRANSITION_GUARD_MS після переходу
+    uint32_t elapsed = millis() - screen_transition_time;
+    if (elapsed < SCREEN_TRANSITION_GUARD_MS) {
+        Serial.printf("[GUARD] Блокування: elapsed=%lu ms\n", elapsed);
+        return true;
+    }
+    return false;
+}
+
+void markScreenTransition()
+{
+    screen_transition_time = millis();
+    Serial.println("[GUARD] Перехід екрану");
+}
+
+void markTouchReleased()
+{
+    // Функція залишена для сумісності, але не використовується
+}
+
+// === АУДІО ПІДКАЗКИ ===
+void playAudioPrompt(const char* audioId)
+{
+    // Надсилаємо команду аудіо на ESP32 DevKit
+    // Формат: CMD:AUDIO:EXCELLENT
+    uart_protocol.sendMessage(uart_protocol.createAudioMessage(audioId));
+    Serial.printf("[AUDIO] Відправлено: %s\n", audioId);
+}
 
 // === СИСТЕМА ПАЦІЄНТІВ ===
 int currentPatientIndex = 0;  // 0 = гість

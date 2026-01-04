@@ -22,8 +22,23 @@
 #define CMD_LED "LED"
 #define CMD_LEDS "LEDS"
 #define CMD_REQUEST "REQUEST"
+#define CMD_AUDIO "AUDIO"
 
 #define CMD_USE_SERIAL "USE_SERIAL"
+
+// Audio prompt IDs (for voice prompts)
+#define AUDIO_START "START"           // "Почнемо тренування"
+#define AUDIO_READY "READY"           // "Приготуйтесь"
+#define AUDIO_GO "GO"                 // "Почали!"
+#define AUDIO_EXCELLENT "EXCELLENT"   // "Відмінно!"
+#define AUDIO_GOOD "GOOD"             // "Добре!"
+#define AUDIO_TRY_AGAIN "TRY_AGAIN"   // "Спробуйте ще раз"
+#define AUDIO_TOO_SLOW "TOO_SLOW"     // "Занадто повільно"
+#define AUDIO_TOO_EARLY "TOO_EARLY"   // "Занадто рано!"
+#define AUDIO_CORRECT "CORRECT"       // "Правильно!"
+#define AUDIO_WRONG "WRONG"           // "Неправильно"
+#define AUDIO_COMPLETE "COMPLETE"     // "Тренування завершено"
+#define AUDIO_NEW_RECORD "NEW_RECORD" // "Новий рекорд!"
 
 // CMD LED subcommands
 #define CMD_LED_CLEAR "CLEAR"
@@ -45,6 +60,7 @@ public:
     String createLEDSetPixelMessage(uint8_t ledIndex, const String &hexColor); // CMD:LED:5:FF00AA
     String createLEDSetPixelsMultiMessage(const String &colorList);            // CMD:LEDS:FF0000,00FF00,...
     String createLEDClearMessage(const String &hexColor);                      // CMD:LEDS:CLEAR:FF0000
+    String createAudioMessage(const String &audioId);                          // CMD:AUDIO:EXCELLENT
     String createRequestButtonsMessage();                                      // CMD:REQUEST:BUTTONS
     String createLogMessage(const String &logData);                            // LOG:logData
 
