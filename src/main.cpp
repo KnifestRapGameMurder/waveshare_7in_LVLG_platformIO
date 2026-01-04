@@ -82,6 +82,21 @@ static void app_timer_cb(lv_timer_t *timer)
             return;
         }
     }
+    
+    // 1b. Check for idle timeout on patient select screen (return to loading screen)
+    if (current_state == STATE_PATIENT_SELECT)
+    {
+        if ((now - last_interaction_time) >= IDLE_TIMEOUT)
+        {
+            Serial.println("[ТАЙМ-АУТ MAIN.CPP] Досягнуто тайм-аут на екрані пацієнтів - повернення до заставки");
+            lvgl_port_lock(-1); // Lock for UI changes
+            current_state = STATE_LOADING;
+            state_start_time = now;
+            loading_screen_create(app_screen_touch_cb);
+            lvgl_port_unlock(); // Unlock
+            return;
+        }
+    }
 
     // 2. Run animation update if in loading state
     if (current_state == STATE_LOADING)

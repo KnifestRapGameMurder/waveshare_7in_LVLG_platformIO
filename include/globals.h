@@ -70,4 +70,10 @@ void savePatientStats(int patientIndex);
 void loadPatientStats(int patientIndex);
 void clearPatientStats(int patientIndex);
 
+// Функції запису історії сесій
+void addAccuracySession(int patientIndex, uint16_t score, uint16_t accuracy_pct);
+void addReactionSession(int patientIndex, uint16_t time_ms, uint16_t attempts);
+void addMemorySession(int patientIndex, uint16_t level, uint16_t correct);
+void addCoordinationSession(int patientIndex, uint16_t score, uint16_t hits);
+
 #endif // GLOBALS_H

@@ -116,6 +116,23 @@ struct Button_t
 
 // === КІЛЬКІСТЬ ПАЦІЄНТІВ ===
 #define PATIENT_COUNT 16  // 15 пацієнтів + 1 гість (індекс 0)
+#define SESSION_HISTORY_SIZE 10  // Зберігаємо останні 10 сесій
+
+// === ЗАПИС ОДНІЄЇ СЕСІЇ ===
+struct SessionRecord
+{
+  uint32_t timestamp;    // Час сесії (секунди з початку роботи)
+  uint16_t score;        // Результат/очки
+  uint16_t extra;        // Додаткові дані (час реакції, рівень, тощо)
+};
+
+// === ІСТОРІЯ СЕСІЙ ТРЕНАЖЕРА ===
+struct TrainerHistory
+{
+  SessionRecord sessions[SESSION_HISTORY_SIZE];
+  uint8_t count;         // Кількість записів (0-10)
+  uint8_t next_index;    // Індекс для наступного запису (циклічний буфер)
+};
 
 // === СТАТИСТИКА ПАЦІЄНТА ===
 struct PatientStats
@@ -125,22 +142,26 @@ struct PatientStats
   uint16_t accuracy_total_hits;    // Загальна кількість влучань
   uint16_t accuracy_total_misses;  // Загальна кількість промахів
   uint16_t accuracy_best_score;    // Найкращий результат
+  TrainerHistory accuracy_history; // Історія сесій
 
   // Реакція (Reaction)
   uint16_t reaction_sessions;      // Кількість сесій
   uint16_t reaction_best_time_ms;  // Найкращий час реакції (мс)
   uint32_t reaction_avg_time_sum;  // Сума часів для середнього
   uint16_t reaction_avg_count;     // Кількість вимірювань
+  TrainerHistory reaction_history; // Історія сесій
 
   // Пам'ять (Memory)
   uint16_t memory_sessions;        // Кількість сесій
   uint16_t memory_best_level;      // Найкращий рівень
   uint16_t memory_total_correct;   // Загальна кількість правильних
+  TrainerHistory memory_history;   // Історія сесій
 
   // Координація (Coordination)
   uint16_t coordination_sessions;  // Кількість сесій
   uint16_t coordination_best_score;// Найкращий результат
   uint16_t coordination_total_hits;// Загальна кількість влучань
+  TrainerHistory coordination_history; // Історія сесій
 };
 
 #endif // TYPES_H

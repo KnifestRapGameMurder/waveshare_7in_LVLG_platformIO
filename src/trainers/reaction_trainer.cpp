@@ -317,6 +317,8 @@ static void display_time_trial_results()
         {
             stats->reaction_best_time_ms = bestTime;
         }
+        // Записуємо в історію сесій (час, кількість раундів)
+        addReactionSession(currentPatientIndex, (uint16_t)avgTime, validRounds);
     }
     savePatientStats(currentPatientIndex);
     // =======================================
@@ -605,6 +607,8 @@ static void display_survival_results()
     // === Зберігаємо статистику пацієнта (також для survival) ===
     PatientStats *stats = &patientStats[currentPatientIndex];
     stats->reaction_sessions++;
+    // Записуємо в історію (результат, тривалість у хвилинах)
+    addReactionSession(currentPatientIndex, survivalCorrectPresses, currentSurvivalDurationMinutes);
     savePatientStats(currentPatientIndex);
     // ===========================================================
 

@@ -370,6 +370,8 @@ static void display_results()
     {
         stats->coordination_best_score = current_level;
     }
+    // Записуємо в історію сесій (рівень, влучення)
+    addCoordinationSession(currentPatientIndex, current_level, correct_coordination_presses);
     savePatientStats(currentPatientIndex);
     // =======================================
     

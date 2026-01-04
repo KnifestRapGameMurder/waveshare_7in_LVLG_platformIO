@@ -613,6 +613,8 @@ static void display_results()
     {
         stats->accuracy_best_score = correct_presses;
     }
+    // Записуємо в історію сесій
+    addAccuracySession(currentPatientIndex, correct_presses, (uint16_t)accuracy);
     savePatientStats(currentPatientIndex);
     // =======================================
     

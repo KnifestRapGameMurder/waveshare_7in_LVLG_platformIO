@@ -31,6 +31,15 @@ lv_obj_t *back_button = NULL;
 
 lv_obj_t *debug_label = NULL;
 
+// Тип тренажера для екрану історії
+enum TrainerType {
+    TRAINER_ACCURACY = 0,
+    TRAINER_REACTION = 1,
+    TRAINER_MEMORY = 2,
+    TRAINER_COORDINATION = 3
+};
+static TrainerType selected_trainer = TRAINER_ACCURACY;
+
 // Event handlers
 static void accuracy_difficulty_event_cb(lv_event_t *e)
 {
@@ -815,6 +824,155 @@ void create_patient_select_screen()
 }
 
 // ============================================
+// === ЕКРАН ІСТОРІЇ СЕСІЙ ТРЕНАЖЕРА ===
+// ============================================
+
+// Forward declaration
+void create_patient_stats_screen();
+
+// Обробник повернення з історії до статистики
+static void history_back_event_cb(lv_event_t *e)
+{
+    Serial.println("[HISTORY] Повернення до статистики");
+    create_patient_stats_screen();
+}
+
+// Створення екрану історії сесій
+void create_session_history_screen()
+{
+    Serial.printf("[HISTORY] Створення екрану історії для тренажера %d\n", (int)selected_trainer);
+    lv_obj_clean(lv_scr_act());
+
+    PatientStats *stats = &patientStats[currentPatientIndex];
+    
+    // Фон
+    lv_obj_t *bg = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
+    lv_obj_set_pos(bg, 0, 0);
+    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a2e), 0);
+    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Визначаємо назву та колір тренажера
+    const char *trainer_name = "";
+    uint32_t trainer_color = 0x3498db;
+    TrainerHistory *history = NULL;
+    
+    switch (selected_trainer) {
+        case TRAINER_ACCURACY:
+            trainer_name = "ВЛУЧНІСТЬ";
+            trainer_color = 0x3498db;
+            history = &stats->accuracy_history;
+            break;
+        case TRAINER_REACTION:
+            trainer_name = "РЕАКЦІЯ";
+            trainer_color = 0x2ecc71;
+            history = &stats->reaction_history;
+            break;
+        case TRAINER_MEMORY:
+            trainer_name = "ПАМ'ЯТЬ";
+            trainer_color = 0xe74c3c;
+            history = &stats->memory_history;
+            break;
+        case TRAINER_COORDINATION:
+            trainer_name = "КООРДИНАЦІЯ";
+            trainer_color = 0x9b59b6;
+            history = &stats->coordination_history;
+            break;
+    }
+
+    // Заголовок
+    lv_obj_t *title = lv_label_create(lv_scr_act());
+    char title_buf[64];
+    snprintf(title_buf, sizeof(title_buf), "%s - ІСТОРІЯ", trainer_name);
+    lv_label_set_text(title, title_buf);
+    lv_obj_set_style_text_font(title, Font2, 0);
+    lv_obj_set_style_text_color(title, lv_color_hex(trainer_color), 0);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 20);
+
+    // Контейнер для списку сесій
+    lv_obj_t *list_container = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(list_container, SCR_W - 60, SCR_H - 130);
+    lv_obj_align(list_container, LV_ALIGN_BOTTOM_MID, 0, -60);
+    lv_obj_set_style_bg_color(list_container, lv_color_hex(0x16213e), 0);
+    lv_obj_set_style_border_width(list_container, 2, 0);
+    lv_obj_set_style_border_color(list_container, lv_color_hex(trainer_color), 0);
+    lv_obj_set_style_pad_all(list_container, 15, 0);
+    lv_obj_set_flex_flow(list_container, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_scroll_dir(list_container, LV_DIR_VER);
+
+    if (history == NULL || history->count == 0) {
+        // Немає даних
+        lv_obj_t *no_data = lv_label_create(list_container);
+        lv_label_set_text(no_data, "Немає записаних сесій");
+        lv_obj_set_style_text_font(no_data, Font3, 0);
+        lv_obj_set_style_text_color(no_data, lv_color_hex(0x888888), 0);
+    } else {
+        // Заголовок таблиці
+        lv_obj_t *header = lv_label_create(list_container);
+        if (selected_trainer == TRAINER_REACTION) {
+            lv_label_set_text(header, "#   | РЕЗУЛЬТАТ (мс) | ДОДАТКОВО");
+        } else if (selected_trainer == TRAINER_MEMORY) {
+            lv_label_set_text(header, "#   | РІВЕНЬ | ПРАВИЛЬНИХ");
+        } else {
+            lv_label_set_text(header, "#   | РЕЗУЛЬТАТ | ДОДАТКОВО");
+        }
+        lv_obj_set_style_text_font(header, Font3, 0);
+        lv_obj_set_style_text_color(header, lv_color_hex(trainer_color), 0);
+        
+        // Роздільник
+        lv_obj_t *sep = lv_label_create(list_container);
+        lv_label_set_text(sep, "-------------------------------");
+        lv_obj_set_style_text_font(sep, Font3, 0);
+        lv_obj_set_style_text_color(sep, lv_color_hex(0x555555), 0);
+
+        // Показуємо записи від найновішого до найстарішого
+        char line_buf[64];
+        int displayed = 0;
+        
+        for (int i = 0; i < history->count && displayed < SESSION_HISTORY_SIZE; i++) {
+            // Обчислюємо індекс (від найновішого)
+            int idx = (history->next_index - 1 - i + SESSION_HISTORY_SIZE) % SESSION_HISTORY_SIZE;
+            if (idx < 0) idx += SESSION_HISTORY_SIZE;
+            
+            SessionRecord *rec = &history->sessions[idx];
+            
+            lv_obj_t *row = lv_label_create(list_container);
+            snprintf(line_buf, sizeof(line_buf), "%2d  | %6d | %6d", 
+                displayed + 1, rec->score, rec->extra);
+            lv_label_set_text(row, line_buf);
+            lv_obj_set_style_text_font(row, Font3, 0);
+            lv_obj_set_style_text_color(row, lv_color_white(), 0);
+            
+            displayed++;
+        }
+    }
+
+    // Кнопка назад
+    lv_obj_t *back_btn = lv_btn_create(lv_scr_act());
+    lv_obj_set_size(back_btn, 200, 50);
+    lv_obj_align(back_btn, LV_ALIGN_BOTTOM_MID, 0, -5);
+    lv_obj_set_style_bg_color(back_btn, lv_color_hex(COLOR_BTN_BACK), 0);
+    lv_obj_set_style_bg_color(back_btn, lv_color_hex(COLOR_BTN_BACK_PRESSED), LV_STATE_PRESSED);
+
+    lv_obj_t *back_label_txt = lv_label_create(back_btn);
+    lv_label_set_text(back_label_txt, "НАЗАД");
+    lv_obj_set_style_text_font(back_label_txt, Font3, 0);
+    lv_obj_set_style_text_color(back_label_txt, lv_color_white(), 0);
+    lv_obj_center(back_label_txt);
+
+    lv_obj_add_event_cb(back_btn, history_back_event_cb, LV_EVENT_CLICKED, NULL);
+}
+
+// Обробник кліку по назві тренажера
+static void trainer_click_event_cb(lv_event_t *e)
+{
+    TrainerType type = (TrainerType)(intptr_t)lv_event_get_user_data(e);
+    selected_trainer = type;
+    Serial.printf("[STATS] Клік по тренажеру: %d\n", (int)type);
+    create_session_history_screen();
+}
+
+// ============================================
 // === ЕКРАН СТАТИСТИКИ ПАЦІЄНТА ===
 // ============================================
 
@@ -888,6 +1046,8 @@ void create_patient_stats_screen()
     Serial.println("[STATS_SCR] Формуємо статистику...");
     char line_buf[128];
     lv_obj_t *lbl;
+    lv_obj_t *trainer_btn;
+    lv_obj_t *trainer_lbl;
     
     // Влучність
     int accuracy_pct = (stats->accuracy_total_hits + stats->accuracy_total_misses > 0) 
@@ -897,11 +1057,18 @@ void create_patient_stats_screen()
     int avg_reaction = (stats->reaction_avg_count > 0) 
         ? stats->reaction_avg_time_sum / stats->reaction_avg_count : 0;
 
-    // --- ВЛУЧНІСТЬ ---
-    lbl = lv_label_create(stats_container);
-    lv_label_set_text(lbl, "--- ВЛУЧНІСТЬ ---");
-    lv_obj_set_style_text_font(lbl, Font3, 0);
-    lv_obj_set_style_text_color(lbl, lv_color_hex(0x3498db), 0);
+    // --- ВЛУЧНІСТЬ --- (клікабельна кнопка)
+    trainer_btn = lv_btn_create(stats_container);
+    lv_obj_set_size(trainer_btn, LV_PCT(100), 30);
+    lv_obj_set_style_bg_color(trainer_btn, lv_color_hex(0x3498db), 0);
+    lv_obj_set_style_bg_color(trainer_btn, lv_color_hex(0x2980b9), LV_STATE_PRESSED);
+    lv_obj_set_style_radius(trainer_btn, 5, 0);
+    trainer_lbl = lv_label_create(trainer_btn);
+    lv_label_set_text(trainer_lbl, "ВЛУЧНІСТЬ >");
+    lv_obj_set_style_text_font(trainer_lbl, Font3, 0);
+    lv_obj_set_style_text_color(trainer_lbl, lv_color_white(), 0);
+    lv_obj_center(trainer_lbl);
+    lv_obj_add_event_cb(trainer_btn, trainer_click_event_cb, LV_EVENT_CLICKED, (void*)(intptr_t)TRAINER_ACCURACY);
     
     lbl = lv_label_create(stats_container);
     snprintf(line_buf, sizeof(line_buf), "Сесій: %d  Влучень: %d  Промахів: %d", 
@@ -916,11 +1083,18 @@ void create_patient_stats_screen()
     lv_obj_set_style_text_font(lbl, Font3, 0);
     lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
 
-    // --- РЕАКЦІЯ ---
-    lbl = lv_label_create(stats_container);
-    lv_label_set_text(lbl, "--- РЕАКЦІЯ ---");
-    lv_obj_set_style_text_font(lbl, Font3, 0);
-    lv_obj_set_style_text_color(lbl, lv_color_hex(0x2ecc71), 0);
+    // --- РЕАКЦІЯ --- (клікабельна кнопка)
+    trainer_btn = lv_btn_create(stats_container);
+    lv_obj_set_size(trainer_btn, LV_PCT(100), 30);
+    lv_obj_set_style_bg_color(trainer_btn, lv_color_hex(0x2ecc71), 0);
+    lv_obj_set_style_bg_color(trainer_btn, lv_color_hex(0x27ae60), LV_STATE_PRESSED);
+    lv_obj_set_style_radius(trainer_btn, 5, 0);
+    trainer_lbl = lv_label_create(trainer_btn);
+    lv_label_set_text(trainer_lbl, "РЕАКЦІЯ >");
+    lv_obj_set_style_text_font(trainer_lbl, Font3, 0);
+    lv_obj_set_style_text_color(trainer_lbl, lv_color_white(), 0);
+    lv_obj_center(trainer_lbl);
+    lv_obj_add_event_cb(trainer_btn, trainer_click_event_cb, LV_EVENT_CLICKED, (void*)(intptr_t)TRAINER_REACTION);
     
     lbl = lv_label_create(stats_container);
     snprintf(line_buf, sizeof(line_buf), "Сесій: %d  Рекорд: %d мс  Середнє: %d мс", 
@@ -929,11 +1103,18 @@ void create_patient_stats_screen()
     lv_obj_set_style_text_font(lbl, Font3, 0);
     lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
 
-    // --- ПАМ'ЯТЬ ---
-    lbl = lv_label_create(stats_container);
-    lv_label_set_text(lbl, "--- ПАМ'ЯТЬ ---");
-    lv_obj_set_style_text_font(lbl, Font3, 0);
-    lv_obj_set_style_text_color(lbl, lv_color_hex(0xe74c3c), 0);
+    // --- ПАМ'ЯТЬ --- (клікабельна кнопка)
+    trainer_btn = lv_btn_create(stats_container);
+    lv_obj_set_size(trainer_btn, LV_PCT(100), 30);
+    lv_obj_set_style_bg_color(trainer_btn, lv_color_hex(0xe74c3c), 0);
+    lv_obj_set_style_bg_color(trainer_btn, lv_color_hex(0xc0392b), LV_STATE_PRESSED);
+    lv_obj_set_style_radius(trainer_btn, 5, 0);
+    trainer_lbl = lv_label_create(trainer_btn);
+    lv_label_set_text(trainer_lbl, "ПАМ'ЯТЬ >");
+    lv_obj_set_style_text_font(trainer_lbl, Font3, 0);
+    lv_obj_set_style_text_color(trainer_lbl, lv_color_white(), 0);
+    lv_obj_center(trainer_lbl);
+    lv_obj_add_event_cb(trainer_btn, trainer_click_event_cb, LV_EVENT_CLICKED, (void*)(intptr_t)TRAINER_MEMORY);
     
     lbl = lv_label_create(stats_container);
     snprintf(line_buf, sizeof(line_buf), "Сесій: %d  Макс. рівень: %d  Вірних: %d", 
@@ -942,11 +1123,18 @@ void create_patient_stats_screen()
     lv_obj_set_style_text_font(lbl, Font3, 0);
     lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
 
-    // --- КООРДИНАЦІЯ ---
-    lbl = lv_label_create(stats_container);
-    lv_label_set_text(lbl, "--- КООРДИНАЦІЯ ---");
-    lv_obj_set_style_text_font(lbl, Font3, 0);
-    lv_obj_set_style_text_color(lbl, lv_color_hex(0x9b59b6), 0);
+    // --- КООРДИНАЦІЯ --- (клікабельна кнопка)
+    trainer_btn = lv_btn_create(stats_container);
+    lv_obj_set_size(trainer_btn, LV_PCT(100), 30);
+    lv_obj_set_style_bg_color(trainer_btn, lv_color_hex(0x9b59b6), 0);
+    lv_obj_set_style_bg_color(trainer_btn, lv_color_hex(0x8e44ad), LV_STATE_PRESSED);
+    lv_obj_set_style_radius(trainer_btn, 5, 0);
+    trainer_lbl = lv_label_create(trainer_btn);
+    lv_label_set_text(trainer_lbl, "КООРДИНАЦІЯ >");
+    lv_obj_set_style_text_font(trainer_lbl, Font3, 0);
+    lv_obj_set_style_text_color(trainer_lbl, lv_color_white(), 0);
+    lv_obj_center(trainer_lbl);
+    lv_obj_add_event_cb(trainer_btn, trainer_click_event_cb, LV_EVENT_CLICKED, (void*)(intptr_t)TRAINER_COORDINATION);
     
     lbl = lv_label_create(stats_container);
     snprintf(line_buf, sizeof(line_buf), "Сесій: %d  Рекорд: %d  Влучень: %d", 

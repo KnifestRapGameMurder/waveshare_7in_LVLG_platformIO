@@ -476,6 +476,8 @@ static void display_results()
     {
         stats->memory_best_level = achieved_level;
     }
+    // Записуємо в історію сесій (рівень, кількість правильних)
+    addMemorySession(currentPatientIndex, achieved_level, achieved_level);
     savePatientStats(currentPatientIndex);
     // =======================================
     

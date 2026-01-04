@@ -127,3 +127,44 @@ void clearPatientStats(int patientIndex)
     
     Serial.printf("[ПАЦІЄНТИ] Очищено статистику пацієнта %d\n", patientIndex);
 }
+
+// Допоміжна функція для додавання запису до циклічного буфера
+static void addSessionToHistory(TrainerHistory *history, uint16_t score, uint16_t extra)
+{
+    history->sessions[history->next_index].timestamp = millis() / 1000;
+    history->sessions[history->next_index].score = score;
+    history->sessions[history->next_index].extra = extra;
+    
+    history->next_index = (history->next_index + 1) % SESSION_HISTORY_SIZE;
+    if (history->count < SESSION_HISTORY_SIZE) {
+        history->count++;
+    }
+}
+
+// Додавання сесії тренажера влучності
+void addAccuracySession(int patientIndex, uint16_t score, uint16_t accuracy_pct)
+{
+    if (patientIndex < 0 || patientIndex >= PATIENT_COUNT) return;
+    addSessionToHistory(&patientStats[patientIndex].accuracy_history, score, accuracy_pct);
+}
+
+// Додавання сесії тренажера реакції
+void addReactionSession(int patientIndex, uint16_t time_ms, uint16_t attempts)
+{
+    if (patientIndex < 0 || patientIndex >= PATIENT_COUNT) return;
+    addSessionToHistory(&patientStats[patientIndex].reaction_history, time_ms, attempts);
+}
+
+// Додавання сесії тренажера пам'яті
+void addMemorySession(int patientIndex, uint16_t level, uint16_t correct)
+{
+    if (patientIndex < 0 || patientIndex >= PATIENT_COUNT) return;
+    addSessionToHistory(&patientStats[patientIndex].memory_history, level, correct);
+}
+
+// Додавання сесії тренажера координації
+void addCoordinationSession(int patientIndex, uint16_t score, uint16_t hits)
+{
+    if (patientIndex < 0 || patientIndex >= PATIENT_COUNT) return;
+    addSessionToHistory(&patientStats[patientIndex].coordination_history, score, hits);
+}
