@@ -63,27 +63,55 @@ int lastSurvivalTargetButton = -1;
 
 // === ЗАХИСТ ВІД ФАНТОМНИХ КЛІКІВ ПРИ ПЕРЕХОДІ ЕКРАНІВ ===
 uint32_t screen_transition_time = 0;
+bool touch_is_active = false;           // Чи палець на екрані
+bool wait_for_touch_release = false;    // Чи чекаємо відпускання пальця після переходу
 
 bool isScreenTransitionActive()
 {
-    // Простий часовий guard - блокуємо кліки протягом SCREEN_TRANSITION_GUARD_MS після переходу
     uint32_t elapsed = millis() - screen_transition_time;
-    if (elapsed < SCREEN_TRANSITION_GUARD_MS) {
-        Serial.printf("[GUARD] Блокування: elapsed=%lu ms\n", elapsed);
+    
+    // 1. Якщо чекаємо відпускання пальця після переходу - ЗАВЖДИ блокуємо
+    if (wait_for_touch_release) {
+        Serial.printf("[GUARD] Блокування (чекаємо release): elapsed=%lu ms\n", elapsed);
         return true;
     }
+    
+    // 2. Мінімальний часовий guard після відпускання пальця
+    if (elapsed < SCREEN_TRANSITION_GUARD_MS) {
+        Serial.printf("[GUARD] Блокування (час): elapsed=%lu ms\n", elapsed);
+        return true;
+    }
+    
     return false;
 }
 
 void markScreenTransition()
 {
     screen_transition_time = millis();
-    Serial.println("[GUARD] Перехід екрану");
+    // Якщо палець на екрані при переході - чекаємо його відпускання
+    if (touch_is_active) {
+        wait_for_touch_release = true;
+        Serial.println("[GUARD] Перехід екрану (чекаємо release)");
+    } else {
+        wait_for_touch_release = false;
+        Serial.println("[GUARD] Перехід екрану (палець вже відпущений)");
+    }
+}
+
+void markTouchPressed()
+{
+    touch_is_active = true;
 }
 
 void markTouchReleased()
 {
-    // Функція залишена для сумісності, але не використовується
+    touch_is_active = false;
+    // Коли палець відпущений - скидаємо прапорець очікування і оновлюємо час
+    if (wait_for_touch_release) {
+        wait_for_touch_release = false;
+        screen_transition_time = millis();  // Починаємо відлік часового guard
+        Serial.println("[GUARD] Палець відпущено - старт часового guard");
+    }
 }
 
 // === АУДІО ПІДКАЗКИ ===

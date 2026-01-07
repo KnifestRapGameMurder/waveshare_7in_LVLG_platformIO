@@ -651,13 +651,16 @@ static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
         data->point.x = point.x;
         data->point.y = point.y;
         data->state = LV_INDEV_STATE_PRESSED;
-        was_pressed = true;
+        if (!was_pressed) {
+            was_pressed = true;
+            markTouchPressed();  // Палець натиснутий
+        }
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
         // Якщо палець був натиснутий і тепер відпущений - сигналізуємо
         if (was_pressed) {
             was_pressed = false;
-            markTouchReleased();
+            markTouchReleased();  // Палець відпущений
         }
     }
 }

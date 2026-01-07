@@ -172,7 +172,10 @@ void app_screen_touch_cb(lv_event_t *event)
 {
     lv_event_code_t code = lv_event_get_code(event);
     
-    // Відстежуємо відпускання пальця для захисту від фантомних кліків
+    // Відстежуємо стан дотику для захисту від фантомних кліків
+    if (code == LV_EVENT_PRESSED) {
+        markTouchPressed();
+    }
     if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST) {
         markTouchReleased();
     }
@@ -181,7 +184,8 @@ void app_screen_touch_cb(lv_event_t *event)
 
     if (current_state == STATE_LOADING)
     {
-        if (code == LV_EVENT_CLICKED || code == LV_EVENT_PRESSED)
+        // Для екрану завантаження реагуємо на RELEASED (після зняття пальця)
+        if (code == LV_EVENT_RELEASED)
         {
             Serial.println("[ДОТИК] Перехід від завантаження до вибору пацієнта");
             current_state = STATE_PATIENT_SELECT;
@@ -756,6 +760,10 @@ static void patient_stats_event_cb(lv_event_t *e)
     
     // Встановлюємо прапорець щоб ігнорувати наступний RELEASED
     patient_long_press_triggered = true;
+    
+    // ВАЖЛИВО: Викликаємо markScreenTransition() ОДРАЗУ, до асинхронного виклику!
+    // Це захистить від фантомних кліків коли палець буде відпущений
+    markScreenTransition();
     
     Serial.println("[ПОДІЯ] patient_stats_event_cb - ДОВГЕ НАТИСКАННЯ ПОЧАТОК");
     

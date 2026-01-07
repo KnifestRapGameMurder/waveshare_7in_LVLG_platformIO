@@ -2,6 +2,7 @@
 #include "hardware_abstraction.h"
 #include "app_screens.h"
 #include "globals.h"
+#include "uart_protocol.h"
 #include <Arduino.h>
 #include <lvgl.h>
 #include "fonts.h"
@@ -103,6 +104,7 @@ void set_accuracy_trainer_state(AccuracyTrainerState newState)
 
     case AT_STATE_GET_READY:
         lv_label_set_text(info_label, "Приготуйся!");
+        playAudioPrompt(AUDIO_GET_READY);  // Голосова підказка
         lv_obj_clear_flag(info_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
         correct_presses = 0;
@@ -130,6 +132,7 @@ void set_accuracy_trainer_state(AccuracyTrainerState newState)
         {
             // ЛЕГКИЙ: Мигаюча ціль (було HARD)
             lv_label_set_text(info_label, "Влуч у спалах!");
+            if (total_rounds == 0) playAudioPrompt(AUDIO_HIT_FLASH);  // Голосова підказка
             
             target_led = random(NUM_LEDS);
             prev_target_led = target_led;
@@ -146,6 +149,7 @@ void set_accuracy_trainer_state(AccuracyTrainerState newState)
         {
             // СЕРЕДНІЙ: Рухома жовта ціль (без обмежень)
             lv_label_set_text(info_label, "Спіймай мету!");
+            if (total_rounds == 0) playAudioPrompt(AUDIO_CATCH_TARGET);  // Голосова підказка
             
             target_led = random(NUM_LEDS);
             prev_target_led = target_led;
@@ -161,6 +165,7 @@ void set_accuracy_trainer_state(AccuracyTrainerState newState)
         {
             // ВАЖКИЙ: Статична синя ціль + жовтий chaser (було EASY)
             lv_label_set_text(info_label, "Спіймай зв'язку!");
+            if (total_rounds == 0) playAudioPrompt(AUDIO_CATCH_LINK);  // Голосова підказка
             
             // Set static blue target
             int tries = 0;
@@ -196,6 +201,7 @@ void set_accuracy_trainer_state(AccuracyTrainerState newState)
 
     case AT_STATE_GAME_OVER:
         lv_label_set_text(info_label, "Гру завершено!");
+        playAudioPrompt(AUDIO_GAME_OVER);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         strip_Clear();
         strip_Show();

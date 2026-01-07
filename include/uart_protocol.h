@@ -27,18 +27,45 @@
 #define CMD_USE_SERIAL "USE_SERIAL"
 
 // Audio prompt IDs (for voice prompts)
-#define AUDIO_START "START"           // "Почнемо тренування"
-#define AUDIO_READY "READY"           // "Приготуйтесь"
-#define AUDIO_GO "GO"                 // "Почали!"
-#define AUDIO_EXCELLENT "EXCELLENT"   // "Відмінно!"
-#define AUDIO_GOOD "GOOD"             // "Добре!"
-#define AUDIO_TRY_AGAIN "TRY_AGAIN"   // "Спробуйте ще раз"
-#define AUDIO_TOO_SLOW "TOO_SLOW"     // "Занадто повільно"
-#define AUDIO_TOO_EARLY "TOO_EARLY"   // "Занадто рано!"
-#define AUDIO_CORRECT "CORRECT"       // "Правильно!"
-#define AUDIO_WRONG "WRONG"           // "Неправильно"
-#define AUDIO_COMPLETE "COMPLETE"     // "Тренування завершено"
-#define AUDIO_NEW_RECORD "NEW_RECORD" // "Новий рекорд!"
+// === Загальні ===
+#define AUDIO_GET_READY "GET_READY"       // "Приготуйся!"
+#define AUDIO_START "START"               // "Старт!"
+#define AUDIO_GO "GO"                     // "Почали!"
+#define AUDIO_STOP "STOP"                 // "Стоп!"
+#define AUDIO_GAME_OVER "GAME_OVER"       // "Гру завершено!"
+
+// === Результати ===
+#define AUDIO_EXCELLENT "EXCELLENT"       // "Відмінно!"
+#define AUDIO_GOOD "GOOD"                 // "Добре!"
+#define AUDIO_CORRECT "CORRECT"           // "Правильно!"
+#define AUDIO_WRONG "WRONG"               // "Неправильно!"
+#define AUDIO_NEW_RECORD "NEW_RECORD"     // "Новий рекорд!"
+
+// === Реакція ===
+#define AUDIO_WAIT_LIGHT "WAIT_LIGHT"     // "Чекай світла..."
+#define AUDIO_PRESS "PRESS"               // "Натискай!"
+#define AUDIO_TIMEOUT "TIMEOUT"           // "Час вийшов!"
+#define AUDIO_TOO_EARLY "TOO_EARLY"       // "Занадто рано!"
+#define AUDIO_TOO_SLOW "TOO_SLOW"         // "Занадто повільно"
+
+// === Пам'ять ===
+#define AUDIO_REMEMBER "REMEMBER"         // "Запам'ятовуй..."
+#define AUDIO_YOUR_TURN "YOUR_TURN"       // "Твоя черга!"
+#define AUDIO_LEVEL_UP "LEVEL_UP"         // "Новий рівень!"
+
+// === Влучність ===
+#define AUDIO_HIT_FLASH "HIT_FLASH"       // "Влуч у спалах!"
+#define AUDIO_CATCH_TARGET "CATCH_TARGET" // "Спіймай мету!"
+#define AUDIO_CATCH_LINK "CATCH_LINK"     // "Спіймай зв'язку!"
+
+// === Координація ===
+#define AUDIO_REMEMBER_BTNS "REMEMBER_BTNS" // "Запам'ятай кнопки!"
+#define AUDIO_PRESS_BTNS "PRESS_BTNS"       // "Натисни кнопки!"
+
+// === Числа для зворотного відліку ===
+#define AUDIO_THREE "THREE"               // "Три"
+#define AUDIO_TWO "TWO"                   // "Два"
+#define AUDIO_ONE "ONE"                   // "Один"
 
 // CMD LED subcommands
 #define CMD_LED_CLEAR "CLEAR"

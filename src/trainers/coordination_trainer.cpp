@@ -2,6 +2,7 @@
 #include "hardware_abstraction.h"
 #include "app_screens.h"
 #include "globals.h"
+#include "uart_protocol.h"
 #include <Arduino.h>
 #include <lvgl.h>
 #include "fonts.h"
@@ -79,6 +80,7 @@ void set_coordination_trainer_state(CoordinationTrainerState newState)
 
     case CT_STATE_GET_READY:
         lv_label_set_text(info_label, "Приготуйся!");
+        playAudioPrompt(AUDIO_GET_READY);  // Голосова підказка
         lv_obj_clear_flag(info_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
         correct_coordination_presses = 0;
@@ -110,6 +112,7 @@ void set_coordination_trainer_state(CoordinationTrainerState newState)
     case CT_STATE_SHOW_TARGET:
     {
         lv_label_set_text(info_label, "Запам'ятай кнопки!");
+        playAudioPrompt(AUDIO_REMEMBER_BTNS);  // Голосова підказка
         update_level_display();
 
         // Clear arrays for new level
@@ -160,17 +163,20 @@ void set_coordination_trainer_state(CoordinationTrainerState newState)
 
     case CT_STATE_WAIT_FOR_PRESS:
         lv_label_set_text(info_label, "Натисни кнопки!");
+        playAudioPrompt(AUDIO_PRESS_BTNS);  // Голосова підказка
         round_start_time = lv_tick_get();
         break;
 
     case CT_STATE_ROUND_COMPLETE:
         lv_label_set_text(info_label, "Правильно!");
+        playAudioPrompt(AUDIO_CORRECT);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_hex(0x00FF00), 0);
         strip_Clear();
         break;
 
     case CT_STATE_GAME_OVER:
         lv_label_set_text(info_label, "Гру завершено!");
+        playAudioPrompt(AUDIO_GAME_OVER);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         strip_Clear();
         break;

@@ -2,6 +2,7 @@
 #include "hardware_abstraction.h"
 #include "app_screens.h"
 #include "globals.h"
+#include "uart_protocol.h"
 #include <Arduino.h>
 #include <lvgl.h>
 #include "fonts.h"
@@ -79,6 +80,7 @@ void set_memory_trainer_state(MemoryTrainerState newState)
 
     case MT_STATE_GET_READY:
         lv_label_set_text(info_label, "Приготуйся!");
+        playAudioPrompt(AUDIO_GET_READY);  // Голосова підказка
         lv_obj_clear_flag(info_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_text_color(info_label, lv_color_white(), 0);
@@ -112,6 +114,9 @@ void set_memory_trainer_state(MemoryTrainerState newState)
 
     case MT_STATE_SHOW_SEQUENCE:
         lv_label_set_text(info_label, "Запам'ятовуй...");
+        if (current_sequence_step == 0) {
+            playAudioPrompt(AUDIO_REMEMBER);  // Голосова підказка
+        }
         lv_obj_set_style_text_color(info_label, lv_color_white(), 0);
         update_level_display();
 
@@ -134,6 +139,7 @@ void set_memory_trainer_state(MemoryTrainerState newState)
 
     case MT_STATE_WAIT_FOR_INPUT:
         lv_label_set_text(info_label, "Твоя черга!");
+        playAudioPrompt(AUDIO_YOUR_TURN);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_white(), 0);
         current_user_input_step = 0;
         // Reset button state to prevent false triggers
@@ -149,6 +155,7 @@ void set_memory_trainer_state(MemoryTrainerState newState)
 
     case MT_STATE_ROUND_COMPLETE:
         lv_label_set_text(info_label, "Правильно!");
+        playAudioPrompt(AUDIO_CORRECT);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_hex(0x00FF00), 0);
         current_sequence_length++;
         if (current_sequence_length <= MAX_SEQUENCE_LENGTH)
@@ -159,6 +166,7 @@ void set_memory_trainer_state(MemoryTrainerState newState)
 
     case MT_STATE_GAME_OVER:
         lv_label_set_text(info_label, "Гру завершено!");
+        playAudioPrompt(AUDIO_GAME_OVER);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         strip_Clear();
         Serial.printf("Mem: GAME_OVER state set, timer: %lu\n", memory_trainer_timer);

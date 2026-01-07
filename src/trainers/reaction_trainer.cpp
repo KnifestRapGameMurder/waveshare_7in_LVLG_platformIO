@@ -2,6 +2,7 @@
 #include "hardware_abstraction.h"
 #include "app_screens.h"
 #include "globals.h"
+#include "uart_protocol.h"
 #include <Arduino.h>
 #include <lvgl.h>
 #include <Preferences.h>
@@ -92,6 +93,7 @@ void set_time_trial_state(TimeTrialState newState)
 
     case TT_STATE_GET_READY:
         lv_label_set_text(info_label, "Приготуйся!");
+        playAudioPrompt(AUDIO_GET_READY);  // Голосова підказка
         lv_obj_clear_flag(info_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
         currentTTRound = 0;
@@ -105,6 +107,7 @@ void set_time_trial_state(TimeTrialState newState)
         targetButton = random(NUM_LEDS);
         timeTrialTimer = lv_tick_get() + random(500, 2000);
         lv_label_set_text(info_label, "Чекай світла...");
+        playAudioPrompt(AUDIO_WAIT_LIGHT);  // Голосова підказка
         update_round_display();
         break;
 
@@ -114,6 +117,7 @@ void set_time_trial_state(TimeTrialState newState)
         waitForReaction = true;
         reactionStart = lv_tick_get();
         lv_label_set_text(info_label, "Натискай!");
+        playAudioPrompt(AUDIO_PRESS);  // Голосова підказка
         break;
 
     case TT_STATE_SHOW_RESULT:
@@ -125,10 +129,17 @@ void set_time_trial_state(TimeTrialState newState)
             char result_text[32];
             snprintf(result_text, sizeof(result_text), "Час: %lu мс", reactionTimes[currentTTRound]);
             lv_label_set_text(info_label, result_text);
+            // Оцінка результату
+            if (reactionTimes[currentTTRound] < 300) {
+                playAudioPrompt(AUDIO_EXCELLENT);  // Відмінно!
+            } else if (reactionTimes[currentTTRound] < 500) {
+                playAudioPrompt(AUDIO_GOOD);  // Добре!
+            }
         }
         else
         {
             lv_label_set_text(info_label, "Таймаут!");
+            playAudioPrompt(AUDIO_TIMEOUT);  // Час вийшов!
         }
         timeTrialTimer = lv_tick_get() + RESULT_DISPLAY_DURATION;
         break;
@@ -357,6 +368,7 @@ void set_survival_time_state(SurvivalTimeState newState)
 
     case ST_STATE_GET_READY:
         lv_label_set_text(info_label, "Приготуйся!");
+        playAudioPrompt(AUDIO_GET_READY);  // Голосова підказка
         lv_obj_clear_flag(info_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
         survivalCorrectPresses = 0;
@@ -378,6 +390,7 @@ void set_survival_time_state(SurvivalTimeState newState)
 
     case ST_STATE_START_MESSAGE:
         lv_label_set_text(info_label, "СТАРТ!");
+        playAudioPrompt(AUDIO_START);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_hex(0x00FF00), 0);
         strip_Clear();
         break;
@@ -401,6 +414,7 @@ void set_survival_time_state(SurvivalTimeState newState)
 
     case ST_STATE_STOP_MESSAGE:
         lv_label_set_text(info_label, "СТОП!");
+        playAudioPrompt(AUDIO_STOP);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         strip_Clear();
         Serial.println("ST_STATE_STOP_MESSAGE");
@@ -422,16 +436,19 @@ void set_survival_time_state(SurvivalTimeState newState)
 
     case ST_STATE_WRONG_PRESS:
         lv_label_set_text(info_label, "Неправильно!");
+        playAudioPrompt(AUDIO_WRONG);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         break;
 
     case ST_STATE_GAME_OVER_TIME:
         lv_label_set_text(info_label, "Час вийшов!");
+        playAudioPrompt(AUDIO_TIMEOUT);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         break;
 
     case ST_STATE_GAME_OVER_MISTAKE:
         lv_label_set_text(info_label, "ПОМИЛКА!\nГру завершено.");
+        playAudioPrompt(AUDIO_GAME_OVER);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         break;
 

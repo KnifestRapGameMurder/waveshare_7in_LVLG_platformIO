@@ -62,10 +62,13 @@ extern int lastSurvivalTargetButton;
 
 // === ЗАХИСТ ВІД ФАНТОМНИХ КЛІКІВ ПРИ ПЕРЕХОДІ ЕКРАНІВ ===
 extern uint32_t screen_transition_time;      // Час останнього переходу екрану
-#define SCREEN_TRANSITION_GUARD_MS 100       // Мінімальний час захисту (мс)
+extern bool touch_is_active;                 // Чи палець на екрані
+extern bool wait_for_touch_release;          // Чи чекаємо відпускання пальця
+#define SCREEN_TRANSITION_GUARD_MS 200       // Мінімальний час захисту ПІСЛЯ відпускання (мс)
 bool isScreenTransitionActive();             // Перевірка чи активний захист
 void markScreenTransition();                 // Позначити момент переходу екрану
-void markTouchReleased();                    // Для сумісності (не використовується)
+void markTouchPressed();                     // Позначити початок дотику
+void markTouchReleased();                    // Позначити закінчення дотику
 
 // === СИСТЕМА ПАЦІЄНТІВ ===
 extern int currentPatientIndex;              // Поточний вибраний пацієнт (0 = гість)
