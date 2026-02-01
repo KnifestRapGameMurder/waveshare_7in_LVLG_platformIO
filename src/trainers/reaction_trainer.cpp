@@ -44,8 +44,6 @@ static lv_obj_t *reaction_screen = NULL;
 static lv_obj_t *round_label = NULL;
 static lv_obj_t *info_label = NULL;
 static lv_obj_t *results_label = NULL;
-static lv_obj_t *play_again_btn = NULL;
-static lv_obj_t *exit_btn = NULL;
 
 // === Forward Declarations ===
 static void update_round_display();
@@ -54,15 +52,19 @@ static void check_button_presses_survival();
 static void display_time_trial_results();
 static void display_survival_results();
 static void create_time_trial_game_over_menu();
-static void game_over_menu_event_handler(lv_event_t *e);
-static void time_trial_menu_event_handler(lv_event_t *e);
 static void back_to_menu_event_handler(lv_event_t *e);
 static int get_random_button_avoiding_last(int lastButton);
+
+// Async wrappers for transitions
+static void async_open_reaction_submenu(void *user_data) { create_reaction_submenu(); }
+static void async_restart_time_trial(void *user_data) { set_time_trial_state(TT_STATE_GET_READY); }
+static void async_restart_survival(void *user_data) { set_survival_time_state(ST_STATE_GET_READY); }
+
 
 // External font and preferences
 extern Preferences preferences;
 
-void create_reaction_trainer_screen()
+void create_reaction_trainer_screen(AppState target_mode)
 {
     // Use base function to create common elements
     TrainerScreenElements elements = create_trainer_screen_base(back_to_menu_event_handler);
@@ -74,8 +76,15 @@ void create_reaction_trainer_screen()
     results_label = elements.results_label;
     // back_btn is local in base function, no need to store
 
-    // Initialize game state
-    set_time_trial_state(TT_STATE_GET_READY);
+    // Update global app state ONLY after UI is ready
+    current_state = target_mode;
+
+    // Initialize game state based on targeted mode
+    if (current_state == STATE_REACTION_SURVIVAL) {
+        set_survival_time_state(ST_STATE_GET_READY);
+    } else {
+        set_time_trial_state(TT_STATE_GET_READY);
+    }
 }
 
 void set_time_trial_state(TimeTrialState newState)
@@ -97,6 +106,7 @@ void set_time_trial_state(TimeTrialState newState)
         lv_obj_clear_flag(info_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
         currentTTRound = 0;
+        waitForReaction = false;
         for (int i = 0; i < TOTAL_TT_ROUNDS; i++)
             reactionTimes[i] = 0;
         strip_Clear();
@@ -186,6 +196,7 @@ static void check_button_presses_time_trial()
         if (!was_pressed && is_pressed) // Button just pressed
         {
             waitForReaction = false;
+            last_interaction_time = lv_tick_get();
 
             if (i == targetButton)
             {
@@ -193,15 +204,11 @@ static void check_button_presses_time_trial()
                 Serial.printf("RT Round %d: %lu ms\n", currentTTRound, rT);
                 reactionTimes[currentTTRound] = rT;
                 strip_SetPixelColor(i, RgbColor(0, 255, 0)); // Green feedback
-                strip_Show();
-                delay(100);
             }
             else
             {
                 Serial.printf("Round %d: Wrong button!\n", currentTTRound);
                 strip_SetPixelColor(i, RgbColor(255, 0, 0)); // Red feedback
-                strip_Show();
-                delay(100);
                 reactionTimes[currentTTRound] = 0;
             }
 
@@ -262,12 +269,7 @@ void run_time_trial()
         break;
 
     case TT_STATE_SHOW_RESULTS:
-        // Show results for 3 seconds then show menu
-        if (lv_tick_get() - timeTrialTimer > 3000)
-        {
-            create_time_trial_game_over_menu();
-            set_time_trial_state(TT_STATE_WAIT_FOR_EXIT);
-        }
+        // Results and buttons are shown immediately in display_time_trial_results()
         break;
 
     case TT_STATE_NEXT_ROUND_DELAY:
@@ -339,7 +341,7 @@ static void display_time_trial_results()
     {
         unsigned long avgTime = totalReactionTime / validRounds;
         snprintf(results_text, sizeof(results_text), 
-                 "%lu ms",
+                 "%lu мс",
                  avgTime);
     }
     else
@@ -347,10 +349,12 @@ static void display_time_trial_results()
         snprintf(results_text, sizeof(results_text), "---");
     }
     
-    lv_obj_set_style_text_font(results_label, Font2, 0);
-    lv_obj_set_width(results_label, 780);
+    lv_obj_set_style_text_font(results_label, &lv_lilita_one_regular_96, 0);
     lv_label_set_text(results_label, results_text);
     lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(results_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_update_layout(results_label);
+
     Serial.println("display_time_trial_results END");
 }
 
@@ -373,6 +377,7 @@ void set_survival_time_state(SurvivalTimeState newState)
         lv_obj_add_flag(results_label, LV_OBJ_FLAG_HIDDEN);
         survivalCorrectPresses = 0;
         survivalTotalPresses = 0;
+        waitForReaction = false;
         survivalGameStartTime = lv_tick_get();
         lastSurvivalTargetButton = -1;
         strip_Clear();
@@ -481,15 +486,12 @@ static void check_button_presses_survival()
         {
             waitForReaction = false;
             survivalTotalPresses++;
+            last_interaction_time = lv_tick_get();
 
             if (i == targetButton)
             {
                 survivalCorrectPresses++;
                 strip_SetPixelColor(i, RgbColor(0, 255, 0)); // Green feedback
-                strip_Show();
-                delay(50);
-                strip_Clear();
-                strip_Show();
 
                 if (survivalTimeState == ST_STATE_FAST_GAMEPLAY)
                 {
@@ -504,10 +506,6 @@ static void check_button_presses_survival()
             else
             {
                 strip_SetPixelColor(i, RgbColor(255, 0, 0)); // Red feedback
-                strip_Show();
-                delay(100);
-                strip_Clear();
-                strip_Show();
                 Serial.printf("Surv: Wrong %d\n", i);
 
                 if (survivalTimeState == ST_STATE_FAST_GAMEPLAY)
@@ -524,7 +522,6 @@ static void check_button_presses_survival()
     }
 
     last_button_state = current_button_state;
-    Serial.println("last_button_state");
 }
 
 void run_survival_time_trainer()
@@ -633,7 +630,7 @@ static void display_survival_results()
     if (newRecord)
     {
         snprintf(results_text, sizeof(results_text),
-                 "NEW! %d",
+                 "РЕКОРД! %d",
                  survivalCorrectPresses);
         lv_obj_set_style_text_color(results_label, lv_color_hex(0x00FF00), 0);
     }
@@ -642,80 +639,30 @@ static void display_survival_results()
         snprintf(results_text, sizeof(results_text),
                  "%d / %d",
                  survivalCorrectPresses, currentRecord);
+        lv_obj_set_style_text_color(results_label, lv_color_white(), 0);
     }
     
-    lv_obj_set_style_text_font(results_label, Font2, 0);
-    lv_obj_set_width(results_label, 780);
+    lv_obj_set_style_text_font(results_label, &lv_lilita_one_regular_96, 0);
     lv_label_set_text(results_label, results_text);
     lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(results_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_update_layout(results_label);
+
     Serial.println("Results displayed");
 }
 
-static void create_time_trial_game_over_menu()
-{
-    // Hide round_label (specific to time trial)
-    lv_obj_add_flag(round_label, LV_OBJ_FLAG_HIDDEN);
-    
-    // Use common function for game over menu
-    GameOverMenuElements elements = create_game_over_menu(reaction_screen, info_label, 
-                                                          results_label, time_trial_menu_event_handler);
-    play_again_btn = elements.play_again_btn;
-    exit_btn = elements.exit_btn;
-}
-
-static void game_over_menu_event_handler(lv_event_t *e)
-{
-    int action = (int)(intptr_t)lv_event_get_user_data(e);
-
-    if (action == 0) // Play again
-    {
-        Serial.println("Reaction Menu: Play Again");
-        set_survival_time_state(ST_STATE_GET_READY);
-    }
-    else if (action == 1) // Exit
-    {
-        Serial.println("Reaction Menu: Exit");
-        current_state = STATE_REACTION_SUBMENU;
-        set_survival_time_state(ST_STATE_IDLE);
-        create_reaction_submenu();
-    }
-}
-
-static void time_trial_menu_event_handler(lv_event_t *e)
-{
-    int action = (int)(intptr_t)lv_event_get_user_data(e);
-
-    // Delete menu buttons first
-    if (play_again_btn) {
-        lv_obj_del(play_again_btn);
-        play_again_btn = NULL;
-    }
-    if (exit_btn) {
-        lv_obj_del(exit_btn);
-        exit_btn = NULL;
-    }
-
-    if (action == 0) // Play again
-    {
-        Serial.println("Time Trial Menu: Play Again");
-        set_time_trial_state(TT_STATE_GET_READY);
-    }
-    else if (action == 1) // Exit
-    {
-        Serial.println("Time Trial Menu: Exit");
-        current_state = STATE_REACTION_SUBMENU;
-        set_time_trial_state(TT_STATE_IDLE);
-        create_reaction_submenu();
-    }
-}
 
 static void back_to_menu_event_handler(lv_event_t *e)
 {
+    if (isScreenTransitionActive()) return;
     Serial.println("Reaction: Back to menu");
     current_state = STATE_REACTION_SUBMENU;
     set_time_trial_state(TT_STATE_IDLE);
     set_survival_time_state(ST_STATE_IDLE);
-    create_reaction_submenu();
+    
+    // Async transition to avoid deleting source button in callback
+    markScreenTransition();
+    lv_async_call(async_open_reaction_submenu, NULL);
 }
 
 // Helper function

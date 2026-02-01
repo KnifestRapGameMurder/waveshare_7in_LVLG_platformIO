@@ -60,8 +60,6 @@ static lv_obj_t *accuracy_screen = NULL;
 static lv_obj_t *hud_label = NULL;
 static lv_obj_t *info_label = NULL;
 static lv_obj_t *results_label = NULL;
-static lv_obj_t *play_again_btn = NULL;
-static lv_obj_t *exit_btn = NULL;
 static lv_obj_t *back_btn = NULL;
 
 // === Forward Declarations ===
@@ -72,10 +70,14 @@ static void move_chaser_easy();
 static void move_target_medium();
 static void flash_target_hard();
 static void display_results();
-static void game_over_menu_event_handler(lv_event_t *e);
 static void back_to_menu_event_handler(lv_event_t *e);
 
-void create_accuracy_trainer_screen()
+// Async wrappers for transitions
+static void async_open_main_menu(void *user_data) { create_main_menu(); }
+static void async_restart_accuracy(void *user_data) { set_accuracy_trainer_state(AT_STATE_GET_READY); }
+
+
+void create_accuracy_trainer_screen(AppState target_mode)
 {
     // Use base function to create common elements
     TrainerScreenElements elements = create_trainer_screen_base(back_to_menu_event_handler);
@@ -86,6 +88,9 @@ void create_accuracy_trainer_screen()
     info_label = elements.info_label;
     results_label = elements.results_label;
     back_btn = elements.back_btn;
+
+    // Update global app state ONLY after UI is ready
+    current_state = target_mode;
 
     // Initialize game state
     set_accuracy_trainer_state(AT_STATE_GET_READY);
@@ -124,8 +129,7 @@ void set_accuracy_trainer_state(AccuracyTrainerState newState)
     case AT_STATE_SHOW_TARGET:
     {
         char round_text[32];
-        snprintf(round_text, sizeof(round_text), "Раунд %d", total_rounds + 1);
-        lv_label_set_text(hud_label, round_text);
+    snprintf(round_text, sizeof(round_text), "РАУНД %d", total_rounds + 1);
         update_hud();
 
         if (current_difficulty == ACCURACY_EASY)
@@ -230,12 +234,12 @@ static void update_hud()
     {
         float accuracy = (100.0f * correct_presses) / total_rounds;
         char hud_text[64];
-        snprintf(hud_text, sizeof(hud_text), "Влучність %.1f%%  Раундів: %d", accuracy, total_rounds);
+        snprintf(hud_text, sizeof(hud_text), "ВЛУЧНІСТЬ %.1f%%  РАУНДІВ: %d", accuracy, total_rounds);
         lv_label_set_text(hud_label, hud_text);
     }
     else
     {
-        lv_label_set_text(hud_label, "Влучність 0.0%  Раундів: 0");
+        lv_label_set_text(hud_label, "ВЛУЧНІСТЬ 0.0%  РАУНДІВ: 0");
     }
 }
 
@@ -627,51 +631,24 @@ static void display_results()
     // Short text for Font2 (48px) - max ~12 chars wide
     char results_text[64];
     snprintf(results_text, sizeof(results_text),
-        "%.0f%% %d/%d",
+        "%.0f%% %d / %d",
         accuracy, correct_presses, total_rounds);
     
-    lv_obj_set_style_text_font(results_label, Font2, 0);
-    lv_obj_set_width(results_label, 780);
+    lv_obj_set_style_text_font(results_label, &lv_lilita_one_regular_96, 0);
     lv_label_set_text(results_label, results_text);
     lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
-}
-
-static void game_over_menu_event_handler(lv_event_t *e)
-{
-    int action = (int)(intptr_t)lv_event_get_user_data(e);
-
-    if (action == 0) // Play again
-    {
-        Serial.println("Acc Menu: Play Again");
-        set_accuracy_trainer_state(AT_STATE_GET_READY);
-    }
-    else if (action == 1) // Exit
-    {
-        Serial.println("Acc Menu: Exit");
-        last_interaction_time = lv_tick_get(); // Add this
-        current_state = STATE_MAIN_MENU;
-        set_accuracy_trainer_state(AT_STATE_IDLE);
-        create_main_menu();
-    }
+    lv_obj_align(results_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_update_layout(results_label);
 }
 
 static void back_to_menu_event_handler(lv_event_t *e)
 {
     Serial.println("Back button pressed in accuracy trainer");
 
-    if (current_trainer_state == AT_STATE_GAME_OVER || current_trainer_state == AT_STATE_SHOW_RESULTS)
-    {
-        // Skip to menu directly
-        current_state = STATE_MAIN_MENU;
-        set_accuracy_trainer_state(AT_STATE_IDLE);
-        create_main_menu();
-        return;
-    }
-
-    last_interaction_time = lv_tick_get(); // Add this
+    last_interaction_time = lv_tick_get();
     current_state = STATE_MAIN_MENU;
     set_accuracy_trainer_state(AT_STATE_IDLE);
-    create_main_menu();
+    lv_async_call(async_open_main_menu, NULL);
 }
 
 // Difficulty setters

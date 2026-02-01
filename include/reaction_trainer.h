@@ -3,6 +3,7 @@
 
 #include "lvgl.h"
 #include "types.h"
+#include "app_screens.h"
 // #include "hardware_abstraction.h"
 
 // === LVGL UI FUNCTIONS ===
@@ -10,7 +11,7 @@ void create_reaction_submenu();
 void create_reaction_time_trial_screen();
 void create_reaction_survival_submenu();
 void create_reaction_survival_screen();
-void create_reaction_trainer_screen();
+void create_reaction_trainer_screen(AppState target_mode);
 
 // === GAME LOGIC FUNCTIONS ===
 void set_time_trial_state(TimeTrialState newState);

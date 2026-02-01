@@ -8,11 +8,6 @@
 
 #include <lvgl.h>
 #include <Arduino.h>
-#include "accuracy_trainer.h"
-#include "reaction_trainer.h"
-#include "memory_trainer.h"
-#include "coordination_trainer.h"
-#include "fonts.h"
 
 // Debug label for button states
 extern lv_obj_t *debug_label;
@@ -54,6 +49,12 @@ enum AppState
     // Sub-states for coordination trainer
     STATE_COORDINATION_SUBMENU
 };
+
+#include "accuracy_trainer.h"
+#include "reaction_trainer.h"
+#include "memory_trainer.h"
+#include "coordination_trainer.h"
+#include "fonts.h"
 
 // Application State Variables (Defined in main.cpp, declared here as extern)
 extern AppState current_state;

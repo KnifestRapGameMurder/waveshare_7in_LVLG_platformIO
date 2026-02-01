@@ -70,15 +70,9 @@ bool isScreenTransitionActive()
 {
     uint32_t elapsed = millis() - screen_transition_time;
     
-    // 1. Якщо чекаємо відпускання пальця після переходу - ЗАВЖДИ блокуємо
-    if (wait_for_touch_release) {
-        Serial.printf("[GUARD] Блокування (чекаємо release): elapsed=%lu ms\n", elapsed);
-        return true;
-    }
-    
-    // 2. Мінімальний часовий guard після відпускання пальця
-    if (elapsed < SCREEN_TRANSITION_GUARD_MS) {
-        Serial.printf("[GUARD] Блокування (час): elapsed=%lu ms\n", elapsed);
+    // 1. Тимчасово прибираємо блокування по wait_for_touch_release
+    // 2. Мінімальний часовий guard
+    if (elapsed < 100) { // Зменшуємо до 100мс
         return true;
     }
     
@@ -88,14 +82,9 @@ bool isScreenTransitionActive()
 void markScreenTransition()
 {
     screen_transition_time = millis();
-    // Якщо палець на екрані при переході - чекаємо його відпускання
-    if (touch_is_active) {
-        wait_for_touch_release = true;
-        Serial.println("[GUARD] Перехід екрану (чекаємо release)");
-    } else {
-        wait_for_touch_release = false;
-        Serial.println("[GUARD] Перехід екрану (палець вже відпущений)");
-    }
+    // Тимчасово ігноруємо стан touch_is_active для wait_for_touch_release
+    wait_for_touch_release = false;
+    Serial.println("[GUARD] Перехід екрану (захист 100мс)");
 }
 
 void markTouchPressed()
@@ -150,6 +139,8 @@ void initPatientSystem()
 // Збереження статистики пацієнта у флеш
 void savePatientStats(int patientIndex)
 {
+    // Don't save stats to Flash to avoid display flicker/shift
+    /*
     if (patientIndex < 0 || patientIndex >= PATIENT_COUNT) return;
     
     char key[16];
@@ -161,6 +152,8 @@ void savePatientStats(int patientIndex)
     prefs.end();
     
     Serial.printf("[ПАЦІЄНТИ] Збережено статистику пацієнта %d\n", patientIndex);
+    */
+    Serial.printf("[ПАЦІЄНТИ] (DISABLED) Збережено статистику пацієнта %d\n", patientIndex);
 }
 
 // Завантаження статистики пацієнта з флеш

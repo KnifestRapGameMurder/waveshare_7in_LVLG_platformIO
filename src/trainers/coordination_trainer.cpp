@@ -41,17 +41,19 @@ static lv_obj_t *coordination_screen = NULL;
 static lv_obj_t *level_label = NULL;
 static lv_obj_t *info_label = NULL;
 static lv_obj_t *results_label = NULL;
-static lv_obj_t *play_again_btn = NULL;
-static lv_obj_t *exit_btn = NULL;
 
 // === Forward Declarations ===
 static void update_level_display();
 static void check_button_presses_coordination();
 static void display_results();
-static void game_over_menu_event_handler(lv_event_t *e);
 static void back_to_menu_event_handler(lv_event_t *e);
 
-void create_coordination_trainer_screen()
+// Async wrappers for transitions
+static void async_open_coordination_submenu(void *user_data) { create_coordination_submenu(); }
+static void async_restart_coordination(void *user_data) { set_coordination_trainer_state(CT_STATE_GET_READY); }
+
+
+void create_coordination_trainer_screen(AppState target_mode)
 {
     // Use base function to create common elements
     TrainerScreenElements elements = create_trainer_screen_base(back_to_menu_event_handler);
@@ -62,6 +64,9 @@ void create_coordination_trainer_screen()
     info_label = elements.info_label;
     results_label = elements.results_label;
     // back_btn is local in base function
+
+    // Update global app state ONLY after UI is ready
+    current_state = target_mode;
 
     // Initialize game state
     set_coordination_trainer_state(CT_STATE_GET_READY);
@@ -386,44 +391,27 @@ static void display_results()
              "%d / %d",
              current_level, max_level);
     
-    lv_obj_set_style_text_font(results_label, Font2, 0);
-    lv_obj_set_width(results_label, 780);
+    lv_obj_set_style_text_font(results_label, &lv_lilita_one_regular_96, 0);
     lv_label_set_text(results_label, results_text);
     lv_obj_set_style_text_align(results_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(results_label, LV_ALIGN_CENTER, 0, 0);
     
     if (current_level >= max_level / 2) {
         lv_obj_set_style_text_color(results_label, lv_color_hex(0x00FF00), 0);
+    } else {
+        lv_obj_set_style_text_color(results_label, lv_color_white(), 0);
     }
-}
-
-static void game_over_menu_event_handler(lv_event_t *e)
-{
-    int action = (int)(intptr_t)lv_event_get_user_data(e);
-
-    if (action == 0) // Play again
-    {
-        Serial.println("Coord Menu: Play Again");
-        set_coordination_trainer_state(CT_STATE_GET_READY);
-    }
-    else if (action == 1) // Exit
-    {
-        Serial.println("Coord Menu: Exit");
-        last_interaction_time = lv_tick_get(); // Add this
-        current_state = STATE_COORDINATION_SUBMENU;
-        set_coordination_trainer_state(CT_STATE_IDLE);
-        current_submenu_state = CS_SUBMENU_IDLE;
-        create_coordination_submenu();
-    }
+    lv_obj_update_layout(results_label);
 }
 
 static void back_to_menu_event_handler(lv_event_t *e)
 {
     Serial.println("Coord: Back to menu");
-    last_interaction_time = lv_tick_get(); // Add this
+    last_interaction_time = lv_tick_get();
     current_state = STATE_COORDINATION_SUBMENU;
     set_coordination_trainer_state(CT_STATE_IDLE);
     current_submenu_state = CS_SUBMENU_IDLE;
-    create_coordination_submenu();
+    lv_async_call(async_open_coordination_submenu, NULL);
 }
 
 // Submenu state setters

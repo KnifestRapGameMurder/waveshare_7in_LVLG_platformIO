@@ -3,11 +3,12 @@
 
 #include "lvgl.h"
 #include "types.h"
+#include "app_screens.h"
 // #include "hardware_abstraction.h"
 
 // === LVGL UI FUNCTIONS ===
 void create_coordination_submenu();
-void create_coordination_trainer_screen();
+void create_coordination_trainer_screen(AppState target_mode);
 
 // === GAME LOGIC FUNCTIONS ===
 void set_coordination_trainer_state(CoordinationTrainerState newState);

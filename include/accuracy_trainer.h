@@ -3,6 +3,7 @@
 
 #include "lvgl.h"
 #include "types.h"
+#include "app_screens.h"
 // #include "hardware_abstraction.h"
 
 // === ENUMS ===
@@ -46,7 +47,7 @@ extern unsigned long lastChaserPatternChange;
 extern int chaserSkip;
 
 // === LVGL UI FUNCTIONS ===
-void create_accuracy_trainer_screen();
+void create_accuracy_trainer_screen(AppState target_mode);
 void create_accuracy_difficulty_submenu();
 
 // === GAME LOGIC FUNCTIONS ===

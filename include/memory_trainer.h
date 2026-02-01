@@ -3,10 +3,11 @@
 
 #include "lvgl.h"
 #include "types.h"
+#include "app_screens.h"
 // #include "hardware_abstraction.h"
 
 // === LVGL UI FUNCTIONS ===
-void create_memory_trainer_screen();
+void create_memory_trainer_screen(AppState target_mode);
 
 // === GAME LOGIC FUNCTIONS ===
 void set_memory_trainer_state(MemoryTrainerState newState);

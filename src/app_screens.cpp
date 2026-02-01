@@ -25,6 +25,12 @@ extern void set_survival_time_state(SurvivalTimeState);
 extern void create_back_button();
 extern void create_dark_background();
 
+// Forward declaration for async menu transition
+static void open_main_menu_async(void *user_data);
+static void open_patient_select_async(void *user_data);
+// Forward declaration for stats async
+static void open_stats_async(void *user_data);
+
 // LVGL UI objects (defined here)
 lv_obj_t *menu_buttons[4] = {NULL};
 lv_obj_t *back_button = NULL;
@@ -41,6 +47,12 @@ enum TrainerType {
 static TrainerType selected_trainer = TRAINER_ACCURACY;
 
 // Event handlers
+// --- Async wrappers for difficulty selection ---
+static void open_accuracy_trainer_async(void *user_data) { create_accuracy_trainer_screen((AppState)(intptr_t)user_data); }
+static void open_reaction_trainer_async(void *user_data) { create_reaction_trainer_screen((AppState)(intptr_t)user_data); }
+static void open_reaction_survival_submenu_async(void *user_data) { create_reaction_survival_submenu(); }
+static void open_coordination_trainer_async(void *user_data) { create_coordination_trainer_screen((AppState)(intptr_t)user_data); }
+
 static void accuracy_difficulty_event_cb(lv_event_t *e)
 {
     if (isScreenTransitionActive()) return;
@@ -57,24 +69,23 @@ static void accuracy_difficulty_event_cb(lv_event_t *e)
         set_accuracy_hard_mode();
         break;
     }
-    current_state = STATE_ACCURACY_TRAINER;
-    create_accuracy_trainer_screen();
+    markScreenTransition();
+    lv_async_call(open_accuracy_trainer_async, (void*)STATE_ACCURACY_TRAINER);
 }
 
 static void reaction_mode_event_cb(lv_event_t *e)
 {
     if (isScreenTransitionActive()) return;
     int mode = (int)(intptr_t)lv_event_get_user_data(e);
+    markScreenTransition();
     if (mode == 0)
     {
-        current_state = STATE_REACTION_TIME_TRIAL;
-        create_reaction_trainer_screen();
-        set_time_trial_state(TT_STATE_GET_READY);
+        lv_async_call(open_reaction_trainer_async, (void*)STATE_REACTION_TIME_TRIAL);
     }
     else
     {
         current_state = STATE_REACTION_SURVIVAL_SUBMENU;
-        create_reaction_survival_submenu();
+        lv_async_call(open_reaction_survival_submenu_async, NULL);
     }
 }
 
@@ -86,8 +97,8 @@ static void coordination_difficulty_event_cb(lv_event_t *e)
         set_coordination_easy_mode();
     else
         set_coordination_hard_mode();
-    current_state = STATE_COORDINATION_TRAINER;
-    create_coordination_trainer_screen();
+    markScreenTransition();
+    lv_async_call(open_coordination_trainer_async, (void*)STATE_COORDINATION_TRAINER);
 }
 
 static void survival_duration_event_cb(lv_event_t *e)
@@ -106,10 +117,17 @@ static void survival_duration_event_cb(lv_event_t *e)
         set_survival_duration_3_min();
         break;
     }
-    current_state = STATE_REACTION_SURVIVAL;
-    create_reaction_trainer_screen();
-    set_survival_time_state(ST_STATE_GET_READY);
+    // Async transition
+    markScreenTransition();
+    lv_async_call(open_reaction_trainer_async, (void*)STATE_REACTION_SURVIVAL);
 }
+
+// --- Async wrappers for menu callbacks ---
+static void open_accuracy_async(void *user_data) { create_accuracy_difficulty_submenu(); }
+static void open_reaction_async(void *user_data) { create_reaction_submenu(); }
+static void open_memory_async(void *user_data) { create_memory_trainer_screen((AppState)(intptr_t)user_data); }
+static void open_coordination_async(void *user_data) { create_coordination_submenu(); }
+static void open_generic_async(void *user_data) { create_trainer_screen((int)(intptr_t)user_data); }
 
 // Button event handler for main menu
 static void menu_button_event_cb(lv_event_t *event)
@@ -124,28 +142,30 @@ static void menu_button_event_cb(lv_event_t *event)
     last_interaction_time = lv_tick_get();
     state_start_time = lv_tick_get();
 
+    // Mark transition to block phantom clicks
+    markScreenTransition();
+
     // Switch to selected trainer (uses extern var)
     switch (trainer_id)
     {
     case 0: // Accuracy Trainer
         current_state = STATE_ACCURACY_DIFFICULTY_SUBMENU;
-        create_accuracy_difficulty_submenu();
+        lv_async_call(open_accuracy_async, NULL);
         break;
     case 1: // Reaction Trainer
         current_state = STATE_REACTION_SUBMENU;
-        create_reaction_submenu();
+        lv_async_call(open_reaction_async, NULL);
         break;
     case 2: // Memory Trainer
-        current_state = STATE_MEMORY_TRAINER;
-        create_memory_trainer_screen();
+        lv_async_call(open_memory_async, (void*)STATE_MEMORY_TRAINER);
         break;
     case 3: // Coordination Trainer
         current_state = STATE_COORDINATION_SUBMENU;
-        create_coordination_submenu();
+        lv_async_call(open_coordination_async, NULL);
         break;
     default:
         // Fallback to generic trainer screen
-        create_trainer_screen(trainer_id);
+        lv_async_call(open_generic_async, (void *)(intptr_t)trainer_id);
         break;
     }
 }
@@ -161,7 +181,10 @@ static void back_button_event_cb(lv_event_t *event)
     // Switch to main menu (uses extern var)
     current_state = STATE_MAIN_MENU;
     state_start_time = lv_tick_get();
-    create_main_menu();
+    
+    // ASYNC transition to prevent crash when deleting current screen
+    markScreenTransition();
+    lv_async_call(open_main_menu_async, NULL);
 }
 
 /**
@@ -191,7 +214,10 @@ void app_screen_touch_cb(lv_event_t *event)
             current_state = STATE_PATIENT_SELECT;
             state_start_time = lv_tick_get();
             last_interaction_time = lv_tick_get();
-            create_patient_select_screen();
+            
+            // ASYNC transition
+            markScreenTransition();
+            lv_async_call(open_patient_select_async, NULL);
         }
     }
     else
@@ -204,67 +230,100 @@ void app_screen_touch_cb(lv_event_t *event)
 // Create main menu with 4 trainer buttons taking full screen
 void create_main_menu()
 {
-    Serial.println("[НАЛАГОДЖЕННЯ] Створення головного меню...");
+    Serial.println("[МЕНЮ] Створення головного меню (Simplified Redesign)");
     lv_obj_clean(lv_scr_act());
     markScreenTransition();
 
-    // Create 4 trainer buttons taking all screen space in 2x2 grid
+    // --- 1. Background ---
+    create_dark_background();
+    lv_obj_t *bg = lv_scr_act(); // Use screen as parent for simplicity
+
+    // --- 2. Header ---
+    lv_obj_t *title = lv_label_create(bg);
+    lv_label_set_text(title, "ТРЕНАЖЕРИ");
+    lv_obj_set_style_text_font(title, Font2, 0); 
+    lv_obj_set_style_text_color(title, lv_color_white(), 0);
+    lv_obj_set_style_text_letter_space(title, 2, 0);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 20);
+
+    // --- 3. Cards Grid ---
     const char *trainer_names[] = {
-        "ВЛУЧНІСТЬ",  // Accuracy Trainer
-        "РЕАКЦІЯ",    // Reaction Trainer
-        "ПАМ'ЯТЬ",    // Memory Trainer
-        "КООРДИНАЦІЯ" // Coordination Trainer
+        "ВЛУЧНІСТЬ",
+        "РЕАКЦІЯ",
+        "ПАМ'ЯТЬ",
+        "КООРДИНАЦІЯ"
     };
 
-    // Different colors for each button
-    uint32_t button_colors[] = {
-        COLOR_MENU_ACCURACY,     // Gold for Accuracy
-        COLOR_MENU_REACTION,     // Dark Turquoise for Reaction
-        COLOR_MENU_MEMORY,       // Medium Purple for Memory
-        COLOR_MENU_COORDINATION  // Lime Green for Coordination
+    uint32_t base_colors[] = {
+        0xF59E0B, // Amber
+        0x06B6D4, // Cyan
+        0x8B5CF6, // Violet
+        0x10B981  // Emerald
     };
 
-    // Each button takes half of screen width and height (uses extern vars)
-    int btn_width = SCR_W / 2;
-    int btn_height = SCR_H / 2;
+    int pad_x = 40;
+    int pad_y = 20;
+    int top_offset = 80;
+    int card_w = (SCR_W - (pad_x * 3)) / 2;
+    int card_h = (SCR_H - top_offset - (pad_y * 2)) / 2;
 
     for (int i = 0; i < 4; i++)
     {
         int row = i / 2;
         int col = i % 2;
 
-        menu_buttons[i] = lv_btn_create(lv_scr_act());
-        lv_obj_set_size(menu_buttons[i], btn_width, btn_height);
+        menu_buttons[i] = lv_btn_create(bg);
+        lv_obj_set_size(menu_buttons[i], card_w, card_h);
+        lv_obj_set_pos(menu_buttons[i], pad_x + col * (card_w + pad_x), top_offset + row * (card_h + pad_y));
+        
+        // Solid Color Style (No gradients/shadows for now to rule out memory issues)
+        lv_obj_set_style_bg_color(menu_buttons[i], lv_color_hex(base_colors[i]), 0);
+        lv_obj_set_style_radius(menu_buttons[i], 15, 0);
+        
+        // Pressed State
+        lv_obj_set_style_bg_color(menu_buttons[i], lv_color_darken(lv_color_hex(base_colors[i]), 20), LV_STATE_PRESSED);
 
-        // Position buttons in corners
-        int x_pos = col * btn_width;
-        int y_pos = row * btn_height;
-        lv_obj_set_pos(menu_buttons[i], x_pos, y_pos);
-
-        // Button styling with different colors
-        lv_obj_set_style_bg_color(menu_buttons[i], lv_color_hex(button_colors[i]), 0);
-        lv_obj_set_style_bg_color(menu_buttons[i], lv_color_hex(button_colors[i] + COLOR_MENU_PRESSED_OFFSET), LV_STATE_PRESSED);
-        lv_obj_set_style_border_color(menu_buttons[i], lv_color_white(), 0);
-        lv_obj_set_style_border_width(menu_buttons[i], 3, 0);
-        lv_obj_set_style_radius(menu_buttons[i], 0, 0); // Square corners
-
-        // Button label
+        // -- Title --
         lv_obj_t *label = lv_label_create(menu_buttons[i]);
         lv_label_set_text(label, trainer_names[i]);
-        // NOTE: Commenting out font style since 'minecraft_ten_48' is not defined here.
         lv_obj_set_style_text_font(label, Font2, 0);
         lv_obj_set_style_text_color(label, lv_color_white(), 0);
-        lv_obj_center(label);
+        lv_obj_align(label, LV_ALIGN_TOP_LEFT, 15, 10);
 
-        // Add event handler - реагуємо на відпускання пальця
+        // -- Stats --
+        PatientStats *stats = &patientStats[currentPatientIndex];
+        char stat_text[32];
+        stat_text[0] = '\0';
+        switch(i) {
+            case 0: // Accuracy
+                if(stats->accuracy_best_score > 0) snprintf(stat_text, sizeof(stat_text), "РЕКОРД: %d", stats->accuracy_best_score);
+                else strcpy(stat_text, "РЕКОРД: --"); break;
+            case 1: // Reaction
+                if(stats->reaction_sessions > 0) snprintf(stat_text, sizeof(stat_text), "СЕСІЙ: %d", stats->reaction_sessions);
+                else strcpy(stat_text, "СЕСІЙ: 0"); break;
+            case 2: // Memory
+                if(stats->memory_best_level > 0) snprintf(stat_text, sizeof(stat_text), "РІВЕНЬ: %d", stats->memory_best_level);
+                else strcpy(stat_text, "РІВЕНЬ: --"); break;
+            case 3: // Coordination
+                if(stats->coordination_best_score > 0) snprintf(stat_text, sizeof(stat_text), "РЕКОРД: %d", stats->coordination_best_score);
+                else strcpy(stat_text, "РЕКОРД: --"); break;
+        }
+
+        lv_obj_t *stat_label = lv_label_create(menu_buttons[i]);
+        lv_label_set_text(stat_label, stat_text);
+        lv_obj_set_style_text_font(stat_label, Font3, 0); 
+        lv_obj_set_style_text_color(stat_label, lv_color_white(), 0);
+        lv_obj_align(stat_label, LV_ALIGN_BOTTOM_LEFT, 15, -10);
+
         lv_obj_add_event_cb(menu_buttons[i], menu_button_event_cb, LV_EVENT_RELEASED, (void *)(intptr_t)i);
     }
 
-    // At the end of each create_ function, replace the repeated block with:
     create_debug_label();
 }
 
-// Create trainer screen
+/**
+ * @brief Create generic trainer screen
+ */
 void create_trainer_screen(int trainer_id)
 {
     Serial.printf("[НАЛАГОДЖЕННЯ] Створення екрану тренажера %d...\n", trainer_id + 1);
@@ -712,6 +771,22 @@ GameOverMenuElements create_game_over_menu(lv_obj_t *parent, lv_obj_t *info_lbl,
 // Прапорець для ігнорування RELEASED після LONG_PRESSED
 static bool patient_long_press_triggered = false;
 
+// Асинхронний callback для переходу в головне меню
+static void open_main_menu_async(void *user_data)
+{
+    Serial.println("[ASYNC] open_main_menu_async - СТВОРЕННЯ ГОЛОВНОГО МЕНЮ");
+    create_main_menu();
+    Serial.println("[ASYNC] open_main_menu_async - ЗАВЕРШЕНО");
+}
+
+// Асинхронний callback для переходу до вибору пацієнта
+static void open_patient_select_async(void *user_data)
+{
+    Serial.println("[ASYNC] open_patient_select_async - СТВОРЕННЯ ЕКРАНУ ВИБОРУ ПАЦІЄНТА");
+    create_patient_select_screen();
+    Serial.println("[ASYNC] open_patient_select_async - ЗАВЕРШЕНО");
+}
+
 // Event handler для вибору пацієнта
 static void patient_select_event_cb(lv_event_t *e)
 {
@@ -737,7 +812,11 @@ static void patient_select_event_cb(lv_event_t *e)
     current_state = STATE_MAIN_MENU;
     state_start_time = lv_tick_get();
     last_interaction_time = lv_tick_get();
-    create_main_menu();
+    
+    // ВАЖЛИВО: Викликаємо markScreenTransition() та використовуємо async
+    markScreenTransition();
+    lv_async_call(open_main_menu_async, NULL);
+    
     Serial.println("[ПОДІЯ] patient_select_event_cb КІНЕЦЬ");
 }
 
@@ -791,7 +870,10 @@ static void stats_back_event_cb(lv_event_t *e)
     current_state = STATE_PATIENT_SELECT;
     state_start_time = lv_tick_get();
     last_interaction_time = lv_tick_get();
-    create_patient_select_screen();
+    
+    // ASYNC transition
+    markScreenTransition();
+    lv_async_call(open_patient_select_async, NULL);
 }
 
 // Event handler для очищення статистики
@@ -799,7 +881,10 @@ static void clear_stats_event_cb(lv_event_t *e)
 {
     if (isScreenTransitionActive()) return;
     clearPatientStats(currentPatientIndex);
-    create_patient_stats_screen();  // Оновлюємо екран
+    
+    // ASYNC refresh
+    markScreenTransition();
+    lv_async_call(open_stats_async, NULL);
 }
 
 // Створення екрану вибору пацієнта
