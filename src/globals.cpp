@@ -70,9 +70,13 @@ bool isScreenTransitionActive()
 {
     uint32_t elapsed = millis() - screen_transition_time;
     
-    // 1. Тимчасово прибираємо блокування по wait_for_touch_release
-    // 2. Мінімальний часовий guard
-    if (elapsed < 100) { // Зменшуємо до 100мс
+    // Перевіряємо чи активна блокування по wait_for_touch_release
+    if (wait_for_touch_release) {
+        return true;
+    }
+    
+    // Мінімальний часовий guard
+    if (elapsed < 300) { // Повертаємо до 300мс для надійності
         return true;
     }
     
@@ -82,9 +86,8 @@ bool isScreenTransitionActive()
 void markScreenTransition()
 {
     screen_transition_time = millis();
-    // Тимчасово ігноруємо стан touch_is_active для wait_for_touch_release
-    wait_for_touch_release = false;
-    Serial.println("[GUARD] Перехід екрану (захист 100мс)");
+    // НЕ скидаємо wait_for_touch_release - він буде скинутий при відпусканні пальця
+    Serial.println("[GUARD] Перехід екрану (захист 300мс + wait_for_touch_release)");
 }
 
 void markTouchPressed()

@@ -246,6 +246,26 @@ void create_main_menu()
     lv_obj_set_style_text_letter_space(title, 2, 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 20);
 
+    // --- Back button (top-right) ---
+    lv_obj_t *back_btn = lv_btn_create(bg);
+    lv_obj_set_size(back_btn, 120, 50);
+    lv_obj_align(back_btn, LV_ALIGN_TOP_RIGHT, -20, 15);
+    lv_obj_set_style_bg_color(back_btn, lv_color_hex(0x444444), 0);
+    lv_obj_set_style_radius(back_btn, 10, 0);
+    
+    lv_obj_t *back_label = lv_label_create(back_btn);
+    lv_label_set_text(back_label, "НАЗАД");
+    lv_obj_set_style_text_font(back_label, Font3, 0);
+    lv_obj_center(back_label);
+    
+    lv_obj_add_event_cb(back_btn, [](lv_event_t *e) {
+        if (isScreenTransitionActive()) return;
+        Serial.println("Main menu: Back button pressed");
+        markScreenTransition();
+        current_state = STATE_PATIENT_SELECT;
+        lv_async_call([](void*){ create_patient_select_screen(); }, NULL);
+    }, LV_EVENT_RELEASED, NULL);
+
     // --- 3. Cards Grid ---
     const char *trainer_names[] = {
         "ВЛУЧНІСТЬ",
@@ -790,6 +810,13 @@ static void open_patient_select_async(void *user_data)
 // Event handler для вибору пацієнта
 static void patient_select_event_cb(lv_event_t *e)
 {
+    // Захист від фантомних кліків при переході екранів - ПЕРША ПЕРЕВІРКА!
+    if (isScreenTransitionActive()) {
+        Serial.println("[ПОДІЯ] patient_select_event_cb - ІГНОРОВАНО (захист переходу)");
+        // НЕ скидаємо patient_long_press_triggered тут!
+        return;
+    }
+    
     // Ігноруємо RELEASED якщо це йде після довгого натискання
     if (patient_long_press_triggered) {
         patient_long_press_triggered = false;
@@ -797,11 +824,6 @@ static void patient_select_event_cb(lv_event_t *e)
         return;
     }
     
-    // Захист від фантомних кліків при переході екранів
-    if (isScreenTransitionActive()) {
-        Serial.println("[ПОДІЯ] patient_select_event_cb - ІГНОРОВАНО (захист переходу)");
-        return;
-    }
     Serial.println("[ПОДІЯ] patient_select_event_cb ПОЧАТОК");
     int patient_id = (int)(intptr_t)lv_event_get_user_data(e);
     currentPatientIndex = patient_id;
@@ -843,6 +865,7 @@ static void patient_stats_event_cb(lv_event_t *e)
     // ВАЖЛИВО: Викликаємо markScreenTransition() ОДРАЗУ, до асинхронного виклику!
     // Це захистить від фантомних кліків коли палець буде відпущений
     markScreenTransition();
+    wait_for_touch_release = true;  // Блокуємо всі події до відпускання пальця
     
     Serial.println("[ПОДІЯ] patient_stats_event_cb - ДОВГЕ НАТИСКАННЯ ПОЧАТОК");
     
