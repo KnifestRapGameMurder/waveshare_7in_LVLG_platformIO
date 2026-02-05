@@ -142,8 +142,6 @@ void initPatientSystem()
 // Збереження статистики пацієнта у флеш
 void savePatientStats(int patientIndex)
 {
-    // Don't save stats to Flash to avoid display flicker/shift
-    /*
     if (patientIndex < 0 || patientIndex >= PATIENT_COUNT) return;
     
     char key[16];
@@ -155,8 +153,6 @@ void savePatientStats(int patientIndex)
     prefs.end();
     
     Serial.printf("[ПАЦІЄНТИ] Збережено статистику пацієнта %d\n", patientIndex);
-    */
-    Serial.printf("[ПАЦІЄНТИ] (DISABLED) Збережено статистику пацієнта %d\n", patientIndex);
 }
 
 // Завантаження статистики пацієнта з флеш

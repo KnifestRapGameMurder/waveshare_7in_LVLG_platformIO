@@ -7,6 +7,7 @@
 #include "app_screens.h"
 #include "constants.h"
 #include "globals.h"
+#include <Preferences.h>  // Для збереження очищення у Flash
 
 // Extern declarations for trainer functions
 extern void set_accuracy_easy_mode();
@@ -843,12 +844,8 @@ static void patient_select_event_cb(lv_event_t *e)
 }
 
 // Асинхронний callback для відкриття статистики (щоб уникнути проблем з видаленням об'єкта під час події)
-static void open_stats_async(void *user_data)
-{
-    Serial.println("[ASYNC] open_stats_async - СТВОРЕННЯ ЕКРАНУ СТАТИСТИКИ");
-    create_patient_stats_screen();
-    Serial.println("[ASYNC] open_stats_async - ЗАВЕРШЕНО");
-}
+// Async callback видалено - тепер визначений нижче з підтримкою delayed_clear_save
+
 
 // Event handler для перегляду статистики (довге натискання)
 static void patient_stats_event_cb(lv_event_t *e)
@@ -899,15 +896,62 @@ static void stats_back_event_cb(lv_event_t *e)
     lv_async_call(open_patient_select_async, NULL);
 }
 
+// Статичні змінні для відкладеного збереження очищення
+static bool need_clear_save = false;
+static int clear_patient_index = -1;
+
+// Відкладений callback для збереження очищення у Flash
+static void delayed_clear_save_callback(lv_timer_t *timer)
+{
+    lv_timer_del(timer);  // Видаляємо таймер
+    
+    if (need_clear_save && clear_patient_index >= 0) {
+        Serial.printf("[ОЧИЩЕННЯ] Виконую збереження очищення для пацієнта %d\n", clear_patient_index);
+        
+        // Структура вже очищена в RAM, просто зберігаємо у Flash
+        char key[16];
+        snprintf(key, sizeof(key), "p%d", clear_patient_index);
+        
+        Preferences prefs;
+        prefs.begin("patients", false);
+        prefs.putBytes(key, &patientStats[clear_patient_index], sizeof(PatientStats));
+        prefs.end();
+        
+        Serial.printf("[ОЧИЩЕННЯ] Збережено порожню статистику пацієнта %d у Flash\n", clear_patient_index);
+        
+        need_clear_save = false;
+        clear_patient_index = -1;
+    }
+}
+
 // Event handler для очищення статистики
 static void clear_stats_event_cb(lv_event_t *e)
 {
     if (isScreenTransitionActive()) return;
-    clearPatientStats(currentPatientIndex);
+    
+    Serial.printf("[ОЧИЩЕННЯ] Запит на очищення статистики пацієнта %d\n", currentPatientIndex);
+    
+    // Встановлюємо прапорці для відкладеного збереження
+    need_clear_save = true;
+    clear_patient_index = currentPatientIndex;
+    
+    // Очищаємо тільки в RAM, не торкаючись Flash
+    memset(&patientStats[currentPatientIndex], 0, sizeof(PatientStats));
     
     // ASYNC refresh
     markScreenTransition();
     lv_async_call(open_stats_async, NULL);
+}
+
+// Async callback для відкриття екрану статистики
+static void open_stats_async(void *user_data)
+{
+    create_patient_stats_screen();
+    
+    // Якщо потрібно зберегти очищення - робимо це через 1000мс після створення екрану
+    if (need_clear_save) {
+        lv_timer_create(delayed_clear_save_callback, 1000, NULL);
+    }
 }
 
 // Створення екрану вибору пацієнта
