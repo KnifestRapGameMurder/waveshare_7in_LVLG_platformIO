@@ -481,7 +481,7 @@ static void display_results()
     int achieved_level = current_sequence_length - 1;
     if (achieved_level < 0) achieved_level = 0;
     
-    // === Зберігаємо статистику пацієнта ===
+    // === Оновлюємо статистику пацієнта в RAM (збереження у Flash - через delayed callback) ===
     PatientStats *stats = &patientStats[currentPatientIndex];
     stats->memory_sessions++;
     stats->memory_total_correct += achieved_level;
@@ -491,8 +491,8 @@ static void display_results()
     }
     // Записуємо в історію сесій (рівень, кількість правильних)
     addMemorySession(currentPatientIndex, achieved_level, achieved_level);
-    savePatientStats(currentPatientIndex);
-    // =======================================
+    // НЕ викликаємо savePatientStats() тут - це зробить delayed callback
+    // ==========================================================================================
     
     char results_text[32];
     snprintf(results_text, sizeof(results_text),

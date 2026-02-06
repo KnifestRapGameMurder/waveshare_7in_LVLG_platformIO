@@ -614,7 +614,7 @@ static void display_results()
 
     float accuracy = (total_rounds > 0) ? (100.0f * correct_presses / total_rounds) : 0.0f;
     
-    // === Зберігаємо статистику пацієнта ===
+    // === Оновлюємо статистику пацієнта в RAM (збереження у Flash - через delayed callback) ===
     PatientStats *stats = &patientStats[currentPatientIndex];
     stats->accuracy_sessions++;
     stats->accuracy_total_hits += correct_presses;
@@ -625,8 +625,8 @@ static void display_results()
     }
     // Записуємо в історію сесій
     addAccuracySession(currentPatientIndex, correct_presses, (uint16_t)accuracy);
-    savePatientStats(currentPatientIndex);
-    // =======================================
+    // НЕ викликаємо savePatientStats() тут - це зробить delayed callback
+    // ==========================================================================================
     
     // Short text for Font2 (48px) - max ~12 chars wide
     char results_text[64];

@@ -318,7 +318,7 @@ static void display_time_trial_results()
         }
     }
 
-    // === Зберігаємо статистику пацієнта ===
+    // === Оновлюємо статистику пацієнта в RAM (збереження у Flash - через delayed callback) ===
     PatientStats *stats = &patientStats[currentPatientIndex];
     stats->reaction_sessions++;
     if (validRounds > 0)
@@ -333,8 +333,8 @@ static void display_time_trial_results()
         // Записуємо в історію сесій (час, кількість раундів)
         addReactionSession(currentPatientIndex, (uint16_t)avgTime, validRounds);
     }
-    savePatientStats(currentPatientIndex);
-    // =======================================
+    // НЕ викликаємо savePatientStats() тут - це зробить delayed callback
+    // ==========================================================================================
 
     char results_text[64];
     if (validRounds > 0)
@@ -618,13 +618,13 @@ static void display_survival_results()
         save_survival_record(currentSurvivalDurationMinutes, survivalCorrectPresses);
     }
 
-    // === Зберігаємо статистику пацієнта (також для survival) ===
+    // === Оновлюємо статистику пацієнта в RAM (збереження у Flash - через delayed callback) ===
     PatientStats *stats = &patientStats[currentPatientIndex];
     stats->reaction_sessions++;
     // Записуємо в історію (результат, тривалість у хвилинах)
     addReactionSession(currentPatientIndex, survivalCorrectPresses, currentSurvivalDurationMinutes);
-    savePatientStats(currentPatientIndex);
-    // ===========================================================
+    // НЕ викликаємо savePatientStats() тут - це зробить delayed callback
+    // ==========================================================================================
 
     char results_text[64];
     if (newRecord)

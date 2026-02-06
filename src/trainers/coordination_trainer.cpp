@@ -373,7 +373,7 @@ static void display_results()
     int max_level = (current_submenu_state == CS_EASY_MODE) ? 
         COORDINATION_EASY_MAX_LEDS : COORDINATION_HARD_MAX_LEDS;
     
-    // === Зберігаємо статистику пацієнта ===
+    // === Оновлюємо статистику пацієнта в RAM (збереження у Flash - через delayed callback) ===
     PatientStats *stats = &patientStats[currentPatientIndex];
     stats->coordination_sessions++;
     stats->coordination_total_hits += correct_coordination_presses;
@@ -383,8 +383,8 @@ static void display_results()
     }
     // Записуємо в історію сесій (рівень, влучення)
     addCoordinationSession(currentPatientIndex, current_level, correct_coordination_presses);
-    savePatientStats(currentPatientIndex);
-    // =======================================
+    // НЕ викликаємо savePatientStats() тут - це зробить delayed callback
+    // ==========================================================================================
     
     char results_text[32];
     snprintf(results_text, sizeof(results_text),
