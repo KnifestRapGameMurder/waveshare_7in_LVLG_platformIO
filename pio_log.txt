@@ -1,0 +1,42 @@
+Processing esp32-s3-devkitc-1 (platform: https://github.com/platformio/platform-espressif32.git#develop; board: esp32-s3-devkitc-1; framework: arduino)
+--------------------------------------------------------------------------------
+Library Manager: Installing >=1.0.0 && <2.0.0
+Library Manager: Installing >=0.2.0 && <0.3.0
+Library Manager: Installing >=0.2.0 && <0.3.0
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32-s3-devkitc-1.html
+PLATFORM: Espressif 32 (6.12.0+sha.3c07680) > Espressif ESP32-S3-DevKitC-1-N8 (8 MB QD, No PSRAM)
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (esp-builtin) On-board (esp-builtin) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES: 
+ - framework-arduinoespressif32 @ 3.0.2+sha.65204d9 
+ - framework-arduinoespressif32-libs @ 5.1.0+sha.bd2b9390ef 
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0) 
+ - toolchain-riscv32-esp @ 12.2.0+20230208 
+ - toolchain-xtensa-esp32s3 @ 12.2.0+20230208
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 45 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- ESP32_Display_Panel @ 1.0.5+sha.92b790e
+|-- ESP32_IO_Expander @ 1.1.0+sha.e79a638
+|-- esp-lib-utils @ 0.2.0+sha.bb9ea3d
+|-- lvgl @ 8.4.0+sha.4495f42
+|-- Preferences @ 2.0.0
+|-- SD_MMC @ 2.0.0
+|-- lvgl_port
+Building in release mode
+Archiving .pio\build\esp32-s3-devkitc-1\lib8b4\libESP32_Display_Panel.a
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\core\lv_obj_scroll.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\core\lv_obj_style.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\core\lv_obj_style_gen.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\core\lv_obj_tree.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\core\lv_refr.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\core\lv_theme.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\draw\arm2d\lv_gpu_arm2d.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\draw\lv_draw.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\draw\lv_draw_arc.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\draw\lv_draw_img.c.o
+*** [.pio\build\esp32-s3-devkitc-1\libd2a\lvgl\draw\lv_draw_label.c.o] C:\Users\Admin\Documents\PlatformIO\Projects\waveshare_7in_LVLG_platformIO\.pio\build\esp32-s3-devkitc-1\libd2a\lvgl\draw\lv_draw_label.c.o: The process cannot access the file because it is being used by another process
+========================= [FAILED] Took 136.43 seconds =========================

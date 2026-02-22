@@ -5,7 +5,7 @@
 #include "uart_protocol.h"
 #include <Arduino.h>
 #include <lvgl.h>
-#include <Preferences.h>
+#include <SD_MMC.h>
 #include "fonts.h"
 
 // === Game Constants ===
@@ -61,8 +61,8 @@ static void async_restart_time_trial(void *user_data) { set_time_trial_state(TT_
 static void async_restart_survival(void *user_data) { set_survival_time_state(ST_STATE_GET_READY); }
 
 
-// External font and preferences
-extern Preferences preferences;
+// External font
+// (Preferences removed — survival records stored on SD card)
 
 void create_reaction_trainer_screen(AppState target_mode)
 {
@@ -320,10 +320,10 @@ static void display_time_trial_results()
 
     // === Оновлюємо статистику пацієнта в RAM (збереження у Flash - через delayed callback) ===
     PatientStats *stats = &patientStats[currentPatientIndex];
-    stats->reaction_sessions++;
     if (validRounds > 0)
     {
         unsigned long avgTime = totalReactionTime / validRounds;
+        stats->reaction_sessions++;
         stats->reaction_avg_time_sum += avgTime;
         stats->reaction_avg_count++;
         if (bestTime < stats->reaction_best_time_ms || stats->reaction_best_time_ms == 0)
@@ -332,8 +332,8 @@ static void display_time_trial_results()
         }
         // Записуємо в історію сесій (час, кількість раундів)
         addReactionSession(currentPatientIndex, (uint16_t)avgTime, validRounds);
+        savePatientStats(currentPatientIndex); // Зберігаємо до SD
     }
-    // НЕ викликаємо savePatientStats() тут - це зробить delayed callback
     // ==========================================================================================
 
     char results_text[64];
@@ -623,7 +623,7 @@ static void display_survival_results()
     stats->reaction_sessions++;
     // Записуємо в історію (результат, тривалість у хвилинах)
     addReactionSession(currentPatientIndex, survivalCorrectPresses, currentSurvivalDurationMinutes);
-    // НЕ викликаємо savePatientStats() тут - це зробить delayed callback
+    savePatientStats(currentPatientIndex); // Зберігаємо до SD
     // ==========================================================================================
 
     char results_text[64];
@@ -698,13 +698,25 @@ void set_survival_duration_3_min()
 }
 
 // Records functions
+// Binary layout: [int32 record_2min][int32 record_3min][int32 record_4min]
+#define SURVIVAL_RECORDS_PATH "/survival_records.bin"
+
 void load_survival_records()
 {
-    preferences.begin("survival", false);
-    survivalRecord2Min = preferences.getInt("record_2min", 0);
-    survivalRecord3Min = preferences.getInt("record_3min", 0);
-    survivalRecord4Min = preferences.getInt("record_4min", 0);
-    preferences.end();
+    survivalRecord2Min = 0;
+    survivalRecord3Min = 0;
+    survivalRecord4Min = 0;
+
+    File f = SD_MMC.open(SURVIVAL_RECORDS_PATH, FILE_READ);
+    if (f) {
+        int32_t buf[3] = {0, 0, 0};
+        if (f.read((uint8_t *)buf, sizeof(buf)) == sizeof(buf)) {
+            survivalRecord2Min = buf[0];
+            survivalRecord3Min = buf[1];
+            survivalRecord4Min = buf[2];
+        }
+        f.close();
+    }
 
     Serial.println("Records loaded:");
     Serial.printf("2 min: %d\n", survivalRecord2Min);
@@ -714,37 +726,28 @@ void load_survival_records()
 
 void save_survival_record(int duration, int score)
 {
-    preferences.begin("survival", false);
-
+    bool changed = false;
     switch (duration)
     {
     case 2:
-        if (score > survivalRecord2Min)
-        {
-            survivalRecord2Min = score;
-            preferences.putInt("record_2min", score);
-            Serial.printf("New record 2 min: %d\n", score);
-        }
+        if (score > survivalRecord2Min) { survivalRecord2Min = score; changed = true; Serial.printf("New record 2 min: %d\n", score); }
         break;
     case 3:
-        if (score > survivalRecord3Min)
-        {
-            survivalRecord3Min = score;
-            preferences.putInt("record_3min", score);
-            Serial.printf("New record 3 min: %d\n", score);
-        }
+        if (score > survivalRecord3Min) { survivalRecord3Min = score; changed = true; Serial.printf("New record 3 min: %d\n", score); }
         break;
     case 4:
-        if (score > survivalRecord4Min)
-        {
-            survivalRecord4Min = score;
-            preferences.putInt("record_4min", score);
-            Serial.printf("New record 4 min: %d\n", score);
-        }
+        if (score > survivalRecord4Min) { survivalRecord4Min = score; changed = true; Serial.printf("New record 4 min: %d\n", score); }
         break;
     }
 
-    preferences.end();
+    if (changed) {
+        File f = SD_MMC.open(SURVIVAL_RECORDS_PATH, FILE_WRITE);
+        if (f) {
+            int32_t buf[3] = { survivalRecord2Min, survivalRecord3Min, survivalRecord4Min };
+            f.write((const uint8_t *)buf, sizeof(buf));
+            f.close();
+        }
+    }
 }
 
 int get_survival_record(int duration)

@@ -11,7 +11,7 @@
 #include "lv_conf.h"
 #include <math.h>
 #include "uart_protocol.h"
-#include <Preferences.h>
+#include <SD_MMC.h>
 
 // Include external components
 #include "loading_screen.h"
@@ -32,7 +32,6 @@ AppState current_state = STATE_LOADING;
 uint32_t state_start_time = 0;
 const uint32_t IDLE_TIMEOUT = 10000; // 10 seconds idle timeout
 uint32_t last_interaction_time = 0;
-Preferences preferences;
 
 // HardwareSerial uart_serial(2);
 
@@ -219,6 +218,31 @@ void setup()
 
     assert(board->begin());
     Serial.println("Плата ініціалізована з RGB конфігурацією без розривів!");
+
+    // Налаштування EXIO4 (SD_CS) на CH422G HIGH — зберігає SD-карту в MMC-режимі
+    {
+        auto *io_exp = board->getIO_Expander();
+        if (io_exp) {
+            esp_expander::Base *exp_base = io_exp->getBase();
+            if (exp_base) {
+                exp_base->pinMode(4, OUTPUT);
+                exp_base->digitalWrite(4, HIGH); // SD D3/CS -> HIGH (MMC mode)
+                Serial.println("[SD] EXIO4 (SD CS) HIGH");
+            }
+        }
+    }
+
+    // Ініціалізація SD-карти в 1-bit MMC режимі (CLK=12, CMD=11, D0=13)
+    SD_MMC.setPins(12, 11, 13);
+    if (!SD_MMC.begin("/sdcard", /*mode_1bit=*/true)) {
+        Serial.println("[SD] ПОПЕРЕДЖЕННЯ: SD-карта не знайдена або не ініціалізована!");
+    } else {
+        Serial.printf("[SD] SD-карта ініціалізована, розмір: %lluMB\n", SD_MMC.cardSize() / (1024 * 1024));
+        // Створюємо директорію для пацієнтів якщо не існує
+        if (!SD_MMC.exists("/patients")) {
+            SD_MMC.mkdir("/patients");
+        }
+    }
 
     Serial.println("Ініціалізація LVGL з повним оновленням...");
     lv_log_register_print_cb(lvgl_log_cb);

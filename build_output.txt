@@ -1,0 +1,256 @@
+﻿Processing esp32-s3-devkitc-1 (platform: https://github.com/platformio/platform-espressif32.git#develop; board: esp32-s3-devkitc-1; framework: arduino)
+--------------------------------------------------------------------------------
+Library Manager: Installing >=1.0.0 && <2.0.0
+Library Manager: Installing >=0.2.0 && <0.3.0
+Library Manager: Installing >=0.2.0 && <0.3.0
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32-s3-devkitc-1.html
+PLATFORM: Espressif 32 (6.12.0+sha.3c07680) > Espressif ESP32-S3-DevKitC-1-N8 (8 MB QD, No PSRAM)
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (esp-builtin) On-board (esp-builtin) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES: 
+ - framework-arduinoespressif32 @ 3.0.2+sha.65204d9 
+ - framework-arduinoespressif32-libs @ 5.1.0+sha.bd2b9390ef 
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0) 
+ - toolchain-riscv32-esp @ 12.2.0+20230208 
+ - toolchain-xtensa-esp32s3 @ 12.2.0+20230208
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 45 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- ESP32_Display_Panel @ 1.0.5+sha.92b790e
+|-- ESP32_IO_Expander @ 1.1.0+sha.e79a638
+|-- esp-lib-utils @ 0.2.0+sha.bb9ea3d
+|-- lvgl @ 8.4.0+sha.4495f42
+|-- Preferences @ 2.0.0
+|-- SD_MMC @ 2.0.0
+|-- lvgl_port
+Building in release mode
+Compiling .pio\build\esp32-s3-devkitc-1\src\app_screens.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\constants.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\fonts.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\fonts\lilita_one_regular_130.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\fonts\lilita_one_regular_24.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\fonts\lilita_one_regular_48.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\fonts\lilita_one_regular_96.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\fonts\minecraft_ten_48.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\fonts\minecraft_ten_96.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\globals.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\hardware\hardware_abstraction.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\hardware\led_control.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\loading_screen.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\main.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\tft_compatibility.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\trainers\accuracy_trainer.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\trainers\coordination_trainer.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\trainers\memory_trainer.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\trainers\reaction_trainer.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\src\uart_protocol.cpp.o
+Building .pio\build\esp32-s3-devkitc-1\bootloader.bin
+Generating partitions .pio\build\esp32-s3-devkitc-1\partitions.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 1 ELF section
+Successfully created esp32s3 image.
+Compiling .pio\build\esp32-s3-devkitc-1\libce0\esp-lib-utils\log\esp_utils_log.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libce0\esp-lib-utils\memory\esp_utils_mem.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib3e3\ESP32_IO_Expander\chip\esp_expander_base.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib3e3\ESP32_IO_Expander\chip\esp_expander_ch422g.cpp.o
+Archiving .pio\build\esp32-s3-devkitc-1\libce0\libesp-lib-utils.a
+Compiling .pio\build\esp32-s3-devkitc-1\lib3e3\ESP32_IO_Expander\chip\esp_expander_ht8574.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib3e3\ESP32_IO_Expander\chip\esp_expander_tca95xx_16bit.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib3e3\ESP32_IO_Expander\chip\esp_expander_tca95xx_8bit.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib3e3\ESP32_IO_Expander\port\esp_io_expander.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib3e3\ESP32_IO_Expander\port\esp_io_expander_ch422g.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib3e3\ESP32_IO_Expander\port\esp_io_expander_ht8574.c.o
+pio : .pio/libdeps/esp32-s3-devkitc-1/ESP32_IO_Expander/src/port/esp_io_expande
+r.c:29:20: warning: initialization discards 'const' qualifier from pointer targ
+et type [-Wdiscarded-qualifiers]
+At line:1 char:1
++ pio run 2>&1 | Out-File -FilePath "build_output.txt" -Encoding utf8;  ...
++ ~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (.pio/libdeps/es...ded-qualifiers] 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   29 | static char *TAG = "io_expander";
+      |                    ^~~~~~~~~~~~~
+Compiling .pio\build\esp32-s3-devkitc-1\lib3e3\ESP32_IO_Expander\port\esp_io_expander_tca9554.c.o
+.pio/libdeps/esp32-s3-devkitc-1/ESP32_IO_Expander/src/port/esp_io_expander_ht85
+74.c:43:20: warning: initialization discards 'const' qualifier from pointer tar
+get type [-Wdiscarded-qualifiers]
+   43 | static char *TAG = "ht8574";
+      |                    ^~~~~~~~
+Compiling .pio\build\esp32-s3-devkitc-1\lib3e3\ESP32_IO_Expander\port\esp_io_expander_tca95xx_16bit.c.o
+.pio/libdeps/esp32-s3-devkitc-1/ESP32_IO_Expander/src/port/esp_io_expander_tca9
+554.c:48:20: warning: initialization discards 'const' qualifier from pointer ta
+rget type [-Wdiscarded-qualifiers]
+   48 | static char *TAG = "tca9554";
+      |                    ^~~~~~~~~
+.pio/libdeps/esp32-s3-devkitc-1/ESP32_IO_Expander/src/port/esp_io_expander_tca9
+5xx_16bit.c:48:20: warning: initialization discards 'const' qualifier from poin
+ter target type [-Wdiscarded-qualifiers]
+   48 | static char *TAG = "tca95xx_16";
+      |                    ^~~~~~~~~~~~
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\board\esp_panel_board.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\board\esp_panel_board_default_config.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\backlight\esp_panel_backlight.cpp.o
+Archiving .pio\build\esp32-s3-devkitc-1\lib3e3\libESP32_IO_Expander.a
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\backlight\esp_panel_backlight_custom.cpp.o
+In file included from .pio/libdeps/esp32-s3-devkitc-1/ESP32_Display_Panel/src/b
+oard/supported/esp_panel_board_config_supported.h:26,
+                 from .pio/libdeps/esp32-s3-devkitc-1/ESP32_Display_Panel/src/b
+oard/esp_panel_board_private.hpp:16,
+                 from .pio/libdeps/esp32-s3-devkitc-1/ESP32_Display_Panel/src/b
+oard/esp_panel_board.cpp:11:
+include/esp_panel_board_supported_conf.h:21: warning: "ESP_PANEL_BOARD_DEFAULT_
+USE_SUPPORTED" redefined
+   21 | #define ESP_PANEL_BOARD_DEFAULT_USE_SUPPORTED       (1)
+      | 
+<command-line>: note: this is the location of the previous definition
+include/esp_panel_board_supported_conf.h:110: warning: "BOARD_WAVESHARE_ESP32_S
+3_TOUCH_LCD_7" redefined
+  110 | #define BOARD_WAVESHARE_ESP32_S3_TOUCH_LCD_7
+      | 
+<command-line>: note: this is the location of the previous definition
+.pio/libdeps/esp32-s3-devkitc-1/ESP32_Display_Panel/src/board/supported/esp_pan
+el_board_config_supported.h:58:10: warning: #warning "The `esp_panel_board_supp
+orted_conf.h` file version is outdated. Some new configurations are missing" [-
+Wcpp]
+   58 |         #warning "The `esp_panel_board_supported_conf.h` file version i
+s outdated. Some new configurations are missing"
+      |          ^~~~~~~
+In file included from .pio/libdeps/esp32-s3-devkitc-1/ESP32_Display_Panel/src/b
+oard/supported/esp_panel_board_config_supported.h:26,
+                 from .pio/libdeps/esp32-s3-devkitc-1/ESP32_Display_Panel/src/b
+oard/esp_panel_board_private.hpp:16,
+                 from .pio/libdeps/esp32-s3-devkitc-1/ESP32_Display_Panel/src/b
+oard/esp_panel_board_default_config.cpp:13:
+include/esp_panel_board_supported_conf.h:21: warning: "ESP_PANEL_BOARD_DEFAULT_
+USE_SUPPORTED" redefined
+   21 | #define ESP_PANEL_BOARD_DEFAULT_USE_SUPPORTED       (1)
+      | 
+<command-line>: note: this is the location of the previous definition
+include/esp_panel_board_supported_conf.h:110: warning: "BOARD_WAVESHARE_ESP32_S
+3_TOUCH_LCD_7" redefined
+  110 | #define BOARD_WAVESHARE_ESP32_S3_TOUCH_LCD_7
+      | 
+<command-line>: note: this is the location of the previous definition
+.pio/libdeps/esp32-s3-devkitc-1/ESP32_Display_Panel/src/board/supported/esp_pan
+el_board_config_supported.h:58:10: warning: #warning "The `esp_panel_board_supp
+orted_conf.h` file version is outdated. Some new configurations are missing" [-
+Wcpp]
+   58 |         #warning "The `esp_panel_board_supported_conf.h` file version i
+s outdated. Some new configurations are missing"
+      |          ^~~~~~~
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\backlight\esp_panel_backlight_factory.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\backlight\esp_panel_backlight_pwm_ledc.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\backlight\esp_panel_backlight_switch_expander.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\backlight\esp_panel_backlight_switch_gpio.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\bus\esp_panel_bus.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\bus\esp_panel_bus_dsi.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\bus\esp_panel_bus_factory.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\bus\esp_panel_bus_i2c.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\bus\esp_panel_bus_qspi.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\bus\esp_panel_bus_rgb.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\bus\esp_panel_bus_spi.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\bus\port\esp_lcd_panel_io_3wire_spi.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\host\esp_panel_host_dsi.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\host\esp_panel_host_i2c.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\host\esp_panel_host_spi.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\io_expander\esp_panel_io_expander_factory.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_axs15231b.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_ek79007.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_ek9716b.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_factory.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_gc9503.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_gc9a01.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_gc9b71.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_hx8399.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_ili9341.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_ili9881c.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_jd9165.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_jd9365.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_nv3022b.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_sh8601.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_spd2010.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_st7262.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_st7701.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_st7703.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_st7789.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_st77903.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_st77916.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_st77922.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\esp_panel_lcd_st7796.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_axs15231b.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_ek79007.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_gc9503.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_gc9a01.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_gc9b71.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_hx8399.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_ili9341.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_ili9881c.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_jd9165.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_jd9365.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_nv3022b.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_sh8601.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_spd2010.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st7701.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st7701_mipi.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st7701_rgb.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st7703.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st7789.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st77903_rgb.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st77916.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st77922.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st77922_general.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st77922_mipi.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st77922_rgb.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st7796.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st7796_general.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\lcd\port\esp_lcd_st7796_mipi.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_axs15231b.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_chsc6540.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_cst816s.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_cst820.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_factory.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_ft5x06.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_gsl3680.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_gt1151.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_gt911.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_spd2010.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_st1633.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_st7123.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_stmpe610.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_tt21100.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\esp_panel_touch_xpt2046.cpp.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_axs15231b.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_chsc6540.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_cst816s.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_cst820.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_ft5x06.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_gsl3680.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_gt1151.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_gt911.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_spd2010.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_st1633.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_st7123.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_stmpe610.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_tt21100.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\lib8b4\ESP32_Display_Panel\drivers\touch\port\esp_lcd_touch_xpt2046.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\core\lv_disp.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\core\lv_event.c.o
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\core\lv_group.c.o
+Archiving .pio\build\esp32-s3-devkitc-1\lib8b4\libESP32_Display_Panel.a
+c:\users\admin\.platformio\packages\toolchain-xtensa-esp32s3\bin\../lib/gcc/xte
+nsa-esp32s3-elf/12.2.0/../../../../xtensa-esp32s3-elf/bin/ar.exe: .pio/build/es
+p32-s3-devkitc-1/lib8b4/ESP32_Display_Panel/drivers/lcd/esp_panel_lcd_jd9365.cp
+p.o: No such file or directory
+Compiling .pio\build\esp32-s3-devkitc-1\libd2a\lvgl\core\lv_indev.c.o
+*** [.pio\build\esp32-s3-devkitc-1\lib8b4\libESP32_Display_Panel.a] Error 1
+========================= [FAILED] Took 543.03 seconds ========================
+=

@@ -7,7 +7,6 @@
 #include "app_screens.h"
 #include "constants.h"
 #include "globals.h"
-#include <Preferences.h>  // Для збереження очищення у Flash
 
 // Extern declarations for trainer functions
 extern void set_accuracy_easy_mode();
@@ -908,16 +907,10 @@ static void delayed_clear_save_callback(lv_timer_t *timer)
     if (need_clear_save && clear_patient_index >= 0) {
         Serial.printf("[ОЧИЩЕННЯ] Виконую збереження очищення для пацієнта %d\n", clear_patient_index);
         
-        // Структура вже очищена в RAM, просто зберігаємо у Flash
-        char key[16];
-        snprintf(key, sizeof(key), "p%d", clear_patient_index);
+        // Структура вже очищена в RAM, зберігаємо на SD-карту
+        savePatientStats(clear_patient_index);
         
-        Preferences prefs;
-        prefs.begin("patients", false);
-        prefs.putBytes(key, &patientStats[clear_patient_index], sizeof(PatientStats));
-        prefs.end();
-        
-        Serial.printf("[ОЧИЩЕННЯ] Збережено порожню статистику пацієнта %d у Flash\n", clear_patient_index);
+        Serial.printf("[ОЧИЩЕННЯ] Збережено порожню статистику пацієнта %d на SD\n", clear_patient_index);
         
         need_clear_save = false;
         clear_patient_index = -1;

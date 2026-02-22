@@ -1,0 +1,25 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build SD firmware",
+			"type": "shell",
+			"command": "C:\\Users\\Admin\\.platformio\\penv\\Scripts\\pio.exe",
+			"args": [
+				"run"
+			],
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Build SD firmware 2",
+			"type": "shell",
+			"command": "C:\\Users\\Admin\\.platformio\\penv\\Scripts\\pio.exe",
+			"args": [
+				"run"
+			],
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

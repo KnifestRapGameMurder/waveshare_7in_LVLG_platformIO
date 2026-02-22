@@ -383,7 +383,7 @@ static void display_results()
     }
     // Записуємо в історію сесій (рівень, влучення)
     addCoordinationSession(currentPatientIndex, current_level, correct_coordination_presses);
-    // НЕ викликаємо savePatientStats() тут - це зробить delayed callback
+    savePatientStats(currentPatientIndex); // Зберігаємо до SD
     // ==========================================================================================
     
     char results_text[32];

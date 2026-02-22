@@ -625,7 +625,7 @@ static void display_results()
     }
     // Записуємо в історію сесій
     addAccuracySession(currentPatientIndex, correct_presses, (uint16_t)accuracy);
-    // НЕ викликаємо savePatientStats() тут - це зробить delayed callback
+    savePatientStats(currentPatientIndex); // Зберігаємо до SD
     // ==========================================================================================
     
     // Short text for Font2 (48px) - max ~12 chars wide

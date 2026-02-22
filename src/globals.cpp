@@ -1,6 +1,6 @@
 #include "globals.h"
 #include "uart_protocol.h"
-#include <Preferences.h>
+#include <SD_MMC.h>
 
 // Зовнішнє посилання на UART протокол (визначений в main.cpp)
 extern UARTProtocol uart_protocol;
@@ -124,53 +124,59 @@ void initPatientSystem()
 {
     // Ініціалізуємо всі статистики нулями
     memset(patientStats, 0, sizeof(patientStats));
-    
-    // Завантажуємо збережені дані для всіх пацієнтів
-    Preferences prefs;
-    prefs.begin("patients", true);  // Тільки читання
+
+    // Завантажуємо збережені дані з SD-карти для всіх пацієнтів
     for (int i = 0; i < PATIENT_COUNT; i++)
     {
-        char key[16];
-        snprintf(key, sizeof(key), "p%d", i);
-        prefs.getBytes(key, &patientStats[i], sizeof(PatientStats));
+        loadPatientStats(i);
     }
-    prefs.end();
-    
-    Serial.println("[ПАЦІЄНТИ] Система пацієнтів ініціалізована");
+
+    Serial.println("[ПАЦІЄНТИ] Система пацієнтів ініціалізована (SD-карта)");
 }
 
-// Збереження статистики пацієнта у флеш
+// Збереження статистики пацієнта на SD-карту (бінарний файл)
 void savePatientStats(int patientIndex)
 {
     if (patientIndex < 0 || patientIndex >= PATIENT_COUNT) return;
-    
-    char key[16];
-    snprintf(key, sizeof(key), "p%d", patientIndex);
-    
-    Preferences prefs;
-    prefs.begin("patients", false);
-    prefs.putBytes(key, &patientStats[patientIndex], sizeof(PatientStats));
-    prefs.end();
-    
-    Serial.printf("[ПАЦІЄНТИ] Збережено статистику пацієнта %d\n", patientIndex);
+
+    char path[32];
+    snprintf(path, sizeof(path), "/patients/p%02d.bin", patientIndex);
+
+    File f = SD_MMC.open(path, FILE_WRITE);
+    if (!f) {
+        Serial.printf("[ПАЦІЄНТИ] POMOILKA: не вдалось відкрити %s для запису\n", path);
+        return;
+    }
+    f.write((const uint8_t *)&patientStats[patientIndex], sizeof(PatientStats));
+    f.close();
+
+    Serial.printf("[ПАЦІЄНТИ] Збережено статистику пацієнта %d -> %s\n", patientIndex, path);
 }
 
-// Завантаження статистики пацієнта з флеш
+// Завантаження статистики пацієнта з SD-карти
 void loadPatientStats(int patientIndex)
 {
     if (patientIndex < 0 || patientIndex >= PATIENT_COUNT) return;
-    
-    char key[16];
-    snprintf(key, sizeof(key), "p%d", patientIndex);
-    
-    Preferences prefs;
-    prefs.begin("patients", true);
-    size_t len = prefs.getBytes(key, &patientStats[patientIndex], sizeof(PatientStats));
-    prefs.end();
-    
-    if (len == 0)
-    {
-        // Немає збережених даних - обнулюємо
+
+    char path[32];
+    snprintf(path, sizeof(path), "/patients/p%02d.bin", patientIndex);
+
+    if (!SD_MMC.exists(path)) {
+        // Файл не існує — обнуляємо
+        memset(&patientStats[patientIndex], 0, sizeof(PatientStats));
+        return;
+    }
+
+    File f = SD_MMC.open(path, FILE_READ);
+    if (!f) {
+        memset(&patientStats[patientIndex], 0, sizeof(PatientStats));
+        return;
+    }
+    size_t bytesRead = f.read((uint8_t *)&patientStats[patientIndex], sizeof(PatientStats));
+    f.close();
+
+    if (bytesRead != sizeof(PatientStats)) {
+        // Неповні дані — обнуляємо
         memset(&patientStats[patientIndex], 0, sizeof(PatientStats));
     }
 }
@@ -179,10 +185,10 @@ void loadPatientStats(int patientIndex)
 void clearPatientStats(int patientIndex)
 {
     if (patientIndex < 0 || patientIndex >= PATIENT_COUNT) return;
-    
+
     memset(&patientStats[patientIndex], 0, sizeof(PatientStats));
     savePatientStats(patientIndex);
-    
+
     Serial.printf("[ПАЦІЄНТИ] Очищено статистику пацієнта %d\n", patientIndex);
 }
 

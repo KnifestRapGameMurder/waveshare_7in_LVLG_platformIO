@@ -491,7 +491,7 @@ static void display_results()
     }
     // Записуємо в історію сесій (рівень, кількість правильних)
     addMemorySession(currentPatientIndex, achieved_level, achieved_level);
-    // НЕ викликаємо savePatientStats() тут - це зробить delayed callback
+    savePatientStats(currentPatientIndex); // Зберігаємо до SD
     // ==========================================================================================
     
     char results_text[32];
