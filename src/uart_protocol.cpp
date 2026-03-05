@@ -33,6 +33,7 @@ String UARTProtocol::createLEDClearMessage(const String &hexColor)
 
 String UARTProtocol::createAudioMessage(const String &audioId)
 {
+    // Формат: CMD:AUDIO:1
     return String(MSG_TYPE_CMD) + MSG_SEPARATOR + CMD_AUDIO + MSG_SEPARATOR + audioId;
 }
 
