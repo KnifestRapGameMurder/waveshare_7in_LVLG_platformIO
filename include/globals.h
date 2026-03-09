@@ -91,4 +91,10 @@ void addCoordinationSession(int patientIndex, uint16_t score, uint16_t hits);
 // Використання: playAudioPrompt(AUDIO_EXCELLENT);
 void playAudioPrompt(const char* audioId);
 
+// Поточний рівень гучності (0-100), за замовчуванням 70
+extern uint8_t currentVolume;
+
+// Встановити гучність і надіслати команду через UART 
+void setVolume(uint8_t volume);
+
 #endif // GLOBALS_H

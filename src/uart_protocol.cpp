@@ -37,6 +37,13 @@ String UARTProtocol::createAudioMessage(const String &audioId)
     return String(MSG_TYPE_CMD) + MSG_SEPARATOR + CMD_AUDIO + MSG_SEPARATOR + audioId;
 }
 
+String UARTProtocol::createVolumeMessage(uint8_t volume)
+{
+    // Формат: CMD:VOLUME:75  (0-100)
+    if (volume > 100) volume = 100;
+    return String(MSG_TYPE_CMD) + MSG_SEPARATOR + CMD_VOLUME + MSG_SEPARATOR + String(volume);
+}
+
 String UARTProtocol::createRequestButtonsMessage()
 {
     return String(MSG_TYPE_CMD) + MSG_SEPARATOR + CMD_REQUEST + MSG_SEPARATOR + CMD_BUTTONS;

@@ -25,6 +25,7 @@
 #define CMD_AUDIO "AUDIO"
 
 #define CMD_USE_SERIAL "USE_SERIAL"
+#define CMD_VOLUME "VOLUME"
 
 // Audio prompt IDs (for voice prompts)
 // === Загальні ===
@@ -88,6 +89,7 @@ public:
     String createLEDSetPixelsMultiMessage(const String &colorList);            // CMD:LEDS:FF0000,00FF00,...
     String createLEDClearMessage(const String &hexColor);                      // CMD:LEDS:CLEAR:FF0000
     String createAudioMessage(const String &audioId);                          // CMD:AUDIO:EXCELLENT
+    String createVolumeMessage(uint8_t volume);                                // CMD:VOLUME:75
     String createRequestButtonsMessage();                                      // CMD:REQUEST:BUTTONS
     String createLogMessage(const String &logData);                            // LOG:logData
 

@@ -735,6 +735,59 @@ TrainerScreenElements create_trainer_screen_base(lv_event_cb_t back_event_cb)
 
     lv_obj_add_event_cb(elements.back_btn, back_event_cb, LV_EVENT_RELEASED, NULL);
 
+    // --- Повзунок гучності (верхній лівий кут) ---
+    // Лейбл-іконка гучності
+    lv_obj_t *vol_icon = lv_label_create(elements.screen);
+    lv_label_set_text(vol_icon, LV_SYMBOL_AUDIO);
+    lv_obj_set_style_text_color(vol_icon, lv_color_hex(0xAAAAAA), 0);
+    lv_obj_set_style_text_font(vol_icon, &lv_font_montserrat_20, 0);
+    lv_obj_align(vol_icon, LV_ALIGN_TOP_LEFT, 12, 12);
+
+    // Повзунок
+    lv_obj_t *vol_slider = lv_slider_create(elements.screen);
+    lv_obj_set_size(vol_slider, 140, 10);
+    lv_obj_align(vol_slider, LV_ALIGN_TOP_LEFT, 40, 22);
+    lv_slider_set_range(vol_slider, 0, 100);
+    lv_slider_set_value(vol_slider, currentVolume, LV_ANIM_OFF);
+
+    // Стиль фону треку
+    lv_obj_set_style_bg_color(vol_slider, lv_color_hex(0x444444), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(vol_slider, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_radius(vol_slider, 5, LV_PART_MAIN);
+
+    // Стиль заповненої частини
+    lv_obj_set_style_bg_color(vol_slider, lv_color_hex(0x00AAFF), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(vol_slider, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_obj_set_style_radius(vol_slider, 5, LV_PART_INDICATOR);
+
+    // Стиль маркера
+    lv_obj_set_style_bg_color(vol_slider, lv_color_white(), LV_PART_KNOB);
+    lv_obj_set_style_bg_opa(vol_slider, LV_OPA_COVER, LV_PART_KNOB);
+    lv_obj_set_style_pad_all(vol_slider, 4, LV_PART_KNOB);
+    lv_obj_set_style_radius(vol_slider, LV_RADIUS_CIRCLE, LV_PART_KNOB);
+
+    // Лейбл числового значення
+    lv_obj_t *vol_val_label = lv_label_create(elements.screen);
+    {
+        char vbuf[8];
+        snprintf(vbuf, sizeof(vbuf), "%d", (int)currentVolume);
+        lv_label_set_text(vol_val_label, vbuf);
+    }
+    lv_obj_set_style_text_color(vol_val_label, lv_color_hex(0xAAAAAA), 0);
+    lv_obj_set_style_text_font(vol_val_label, &lv_font_montserrat_14, 0);
+    lv_obj_align(vol_val_label, LV_ALIGN_TOP_LEFT, 185, 14);
+
+    // Подія зміни повзунка
+    lv_obj_add_event_cb(vol_slider, [](lv_event_t *e) {
+        lv_obj_t *slider = lv_event_get_target(e);
+        lv_obj_t *lbl = (lv_obj_t *)lv_event_get_user_data(e);
+        int32_t val = lv_slider_get_value(slider);
+        setVolume((uint8_t)val);
+        char buf[8];
+        snprintf(buf, sizeof(buf), "%d", (int)val);
+        lv_label_set_text(lbl, buf);
+    }, LV_EVENT_VALUE_CHANGED, vol_val_label);
+
     return elements;
 }
 

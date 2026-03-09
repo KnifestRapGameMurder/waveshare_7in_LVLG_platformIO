@@ -115,6 +115,16 @@ void playAudioPrompt(const char* audioId)
     Serial.printf("[AUDIO] Відправлено: %s\n", audioId);
 }
 
+uint8_t currentVolume = 70;  // За замовчуванням 70%
+
+void setVolume(uint8_t volume)
+{
+    if (volume > 100) volume = 100;
+    currentVolume = volume;
+    uart_protocol.sendMessage(uart_protocol.createVolumeMessage(volume));
+    Serial.printf("[VOLUME] Встановлено: %d\n", volume);
+}
+
 // === СИСТЕМА ПАЦІЄНТІВ ===
 int currentPatientIndex = 0;  // 0 = гість
 PatientStats patientStats[PATIENT_COUNT];
