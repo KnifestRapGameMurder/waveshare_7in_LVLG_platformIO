@@ -404,6 +404,7 @@ void set_survival_time_state(SurvivalTimeState newState)
     {
         targetButton = get_random_button_avoiding_last(lastSurvivalTargetButton);
         lastSurvivalTargetButton = targetButton;
+        strip_Clear();                                          // Гасимо попередню кнопку
         strip_SetPixelColor(targetButton, RgbColor(0, 255, 0)); // Green
         strip_Show();
         waitForReaction = true;
@@ -428,6 +429,8 @@ void set_survival_time_state(SurvivalTimeState newState)
     case ST_STATE_PRE_ROUND_DELAY:
         targetButton = get_random_button_avoiding_last(lastSurvivalTargetButton);
         lastSurvivalTargetButton = targetButton;
+        strip_Clear();                                          // Гасимо кнопку під час паузи
+        strip_Show();
         survivalRoundTimer = lv_tick_get() + random(SURVIVAL_PRE_ROUND_MIN_DELAY, SURVIVAL_PRE_ROUND_MAX_DELAY);
         lv_label_set_text(info_label, "Чекай світла...");
         break;
