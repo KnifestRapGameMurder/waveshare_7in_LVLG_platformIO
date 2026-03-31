@@ -170,7 +170,7 @@ void set_memory_trainer_state(MemoryTrainerState newState)
         break;
 
     case MT_STATE_GAME_OVER:
-        lv_label_set_text(info_label, "Гру завершено!");
+        lv_label_set_text(info_label, "Тренування завершено!");
         playAudioPrompt(AUDIO_GAME_OVER);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         strip_Clear();

@@ -68,6 +68,10 @@
 #define AUDIO_TWO "25"                   // "Два"
 #define AUDIO_ONE "26"                   // "Один"
 
+// === Навігаційні підказки ===
+#define AUDIO_CHOOSE_NUMBER "27"   // "Оберіть свій номер" (00027.mp3)
+#define AUDIO_CHOOSE_MODE "28"       // "Оберіть режим"      (00028.mp3)
+
 // CMD LED subcommands
 #define CMD_LED_CLEAR "CLEAR"
 

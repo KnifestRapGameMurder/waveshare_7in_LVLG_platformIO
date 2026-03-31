@@ -16,7 +16,7 @@ const int MAX_ACCURACY_MISSES = 5;             // Max misses before game over
 const int MIN_ACCURACY_ROUNDS = 5;             // Minimum rounds per game
 const int MAX_ACCURACY_ROUNDS = 10;            // Maximum rounds per game (не для MEDIUM)
 const int FEEDBACK_DURATION = 260;             // ms for success/fail feedback effect
-const int GAME_OVER_MSG_DURATION = 1000;       // ms to show "Game Over"
+const int GAME_OVER_MSG_DURATION = 4000;       // ms to show "Game Over"
 const int RESULTS_DISPLAY_DURATION = 5000;     // ms to show results
 
 // Speed constants for different modes
@@ -204,11 +204,10 @@ void set_accuracy_trainer_state(AccuracyTrainerState newState)
         break;
 
     case AT_STATE_GAME_OVER:
-        lv_label_set_text(info_label, "Гру завершено!");
-        playAudioPrompt(AUDIO_GAME_OVER);  // Голосова підказка
-        lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         strip_Clear();
-        strip_Show();
+        lv_label_set_text(info_label, "Тренування завершено!");
+        lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
+        playAudioPrompt(AUDIO_GAME_OVER);  // Голосова підказка — ПІСЛЯ очищення LED
         break;
 
     case AT_STATE_SHOW_RESULTS:
@@ -330,6 +329,9 @@ void check_button_presses()
     }
 
     last_button_state = current_button_state;
+
+    // Якщо кнопка щойно оброблена → перейшли у FEEDBACK, не перевіряємо таймаут у тому ж тіку
+    if (current_trainer_state == AT_STATE_FEEDBACK) return;
 
     // Check for timeout (різний для кожного режиму)
     int current_timeout;
@@ -576,19 +578,14 @@ void run_accuracy_trainer()
     }
 
     case AT_STATE_GAME_OVER:
-        Serial.printf("AT_STATE_GAME_OVER: elapsed %lu ms\n", lv_tick_get() - state_timer);
-        strip_Clear();
-        strip_Show();
+        // strip_Clear вже викликано при вході в стан — не повторюємо щотіку
         if (lv_tick_get() - state_timer > GAME_OVER_MSG_DURATION)
         {
-            Serial.println("Transitioning to AT_STATE_SHOW_RESULTS");
             set_accuracy_trainer_state(AT_STATE_SHOW_RESULTS);
         }
         break;
 
     case AT_STATE_SHOW_RESULTS:
-        strip_Clear();
-        strip_Show();
         if (lv_tick_get() - state_timer > RESULTS_DISPLAY_DURATION)
         {
             set_accuracy_trainer_state(AT_STATE_GAME_OVER_MENU);
@@ -596,8 +593,6 @@ void run_accuracy_trainer()
         break;
 
     case AT_STATE_GAME_OVER_MENU:
-        strip_Clear();
-        strip_Show();
         // Wait for user input on buttons
         break;
 

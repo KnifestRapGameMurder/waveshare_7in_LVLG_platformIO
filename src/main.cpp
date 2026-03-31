@@ -76,6 +76,7 @@ static void app_timer_cb(lv_timer_t *timer)
             lvgl_port_lock(-1); // Lock for UI changes
             current_state = STATE_PATIENT_SELECT;
             state_start_time = now;
+            last_interaction_time = now;  // Оновлюємо час, щоб уникнути миттєвого переходу на заставку
             create_patient_select_screen();
             lvgl_port_unlock(); // Unlock
             return;

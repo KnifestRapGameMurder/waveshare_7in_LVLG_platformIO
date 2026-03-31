@@ -30,6 +30,7 @@ enum AppState
 {
     STATE_LOADING,              // Loading screen with animation
     STATE_PATIENT_SELECT,       // Patient selection screen (15 + guest)
+    STATE_MODE_SELECT,          // Mode selection screen (Trainers / Stats)
     STATE_PATIENT_STATS,        // Patient statistics view
     STATE_MAIN_MENU,            // Main menu with 4 training buttons
     STATE_ACCURACY_TRAINER,     // Accuracy trainer
@@ -80,6 +81,11 @@ void create_patient_select_screen();
  * @brief Creates the patient statistics screen.
  */
 void create_patient_stats_screen();
+
+/**
+ * @brief Creates the mode selection screen (Trainers / Stats) after patient is chosen.
+ */
+void create_mode_select_screen();
 
 /**
  * @brief Creates the generic trainer screen container.

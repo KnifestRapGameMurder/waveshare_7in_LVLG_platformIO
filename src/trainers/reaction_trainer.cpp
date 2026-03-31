@@ -455,7 +455,7 @@ void set_survival_time_state(SurvivalTimeState newState)
         break;
 
     case ST_STATE_GAME_OVER_MISTAKE:
-        lv_label_set_text(info_label, "ПОМИЛКА!\nГру завершено.");
+        lv_label_set_text(info_label, "ПОМИЛКА!\nТренування завершено.");
         playAudioPrompt(AUDIO_GAME_OVER);  // Голосова підказка
         lv_obj_set_style_text_color(info_label, lv_color_hex(0xFF0000), 0);
         break;

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: CC0-1.0
@@ -7,6 +7,7 @@
 #include "app_screens.h"
 #include "constants.h"
 #include "globals.h"
+#include "uart_protocol.h"
 
 // Extern declarations for trainer functions
 extern void set_accuracy_easy_mode();
@@ -28,6 +29,7 @@ extern void create_dark_background();
 // Forward declaration for async menu transition
 static void open_main_menu_async(void *user_data);
 static void open_patient_select_async(void *user_data);
+static void open_mode_select_async(void *user_data);
 // Forward declaration for stats async
 static void open_stats_async(void *user_data);
 
@@ -735,58 +737,42 @@ TrainerScreenElements create_trainer_screen_base(lv_event_cb_t back_event_cb)
 
     lv_obj_add_event_cb(elements.back_btn, back_event_cb, LV_EVENT_RELEASED, NULL);
 
-    // --- Повзунок гучності (верхній лівий кут) ---
-    // Лейбл-іконка гучності
-    lv_obj_t *vol_icon = lv_label_create(elements.screen);
-    lv_label_set_text(vol_icon, LV_SYMBOL_AUDIO);
-    lv_obj_set_style_text_color(vol_icon, lv_color_hex(0xAAAAAA), 0);
-    lv_obj_set_style_text_font(vol_icon, &lv_font_montserrat_20, 0);
-    lv_obj_align(vol_icon, LV_ALIGN_TOP_LEFT, 12, 12);
-
-    // Повзунок
+    // --- Повзунок гучності (ліва сторона, вертикально знизу вгору) ---
     lv_obj_t *vol_slider = lv_slider_create(elements.screen);
-    lv_obj_set_size(vol_slider, 140, 10);
-    lv_obj_align(vol_slider, LV_ALIGN_TOP_LEFT, 40, 22);
+    lv_obj_set_size(vol_slider, 22, 220);   // висота > ширина → вертикальний
+    lv_obj_align(vol_slider, LV_ALIGN_LEFT_MID, 22, 0);
     lv_slider_set_range(vol_slider, 0, 100);
     lv_slider_set_value(vol_slider, currentVolume, LV_ANIM_OFF);
 
-    // Стиль фону треку
+    // Фон треку
     lv_obj_set_style_bg_color(vol_slider, lv_color_hex(0x444444), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(vol_slider, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_radius(vol_slider, 5, LV_PART_MAIN);
+    lv_obj_set_style_radius(vol_slider, 6, LV_PART_MAIN);
 
-    // Стиль заповненої частини
+    // Заповнена частина (знизу вгору)
     lv_obj_set_style_bg_color(vol_slider, lv_color_hex(0x00AAFF), LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(vol_slider, LV_OPA_COVER, LV_PART_INDICATOR);
-    lv_obj_set_style_radius(vol_slider, 5, LV_PART_INDICATOR);
+    lv_obj_set_style_radius(vol_slider, 6, LV_PART_INDICATOR);
 
-    // Стиль маркера
+    // Маркер
     lv_obj_set_style_bg_color(vol_slider, lv_color_white(), LV_PART_KNOB);
     lv_obj_set_style_bg_opa(vol_slider, LV_OPA_COVER, LV_PART_KNOB);
-    lv_obj_set_style_pad_all(vol_slider, 4, LV_PART_KNOB);
+    lv_obj_set_style_pad_all(vol_slider, 6, LV_PART_KNOB);
     lv_obj_set_style_radius(vol_slider, LV_RADIUS_CIRCLE, LV_PART_KNOB);
 
-    // Лейбл числового значення
-    lv_obj_t *vol_val_label = lv_label_create(elements.screen);
-    {
-        char vbuf[8];
-        snprintf(vbuf, sizeof(vbuf), "%d", (int)currentVolume);
-        lv_label_set_text(vol_val_label, vbuf);
-    }
-    lv_obj_set_style_text_color(vol_val_label, lv_color_hex(0xAAAAAA), 0);
-    lv_obj_set_style_text_font(vol_val_label, &lv_font_montserrat_14, 0);
-    lv_obj_align(vol_val_label, LV_ALIGN_TOP_LEFT, 185, 14);
+    // Напис "Гучність" під повзунком
+    lv_obj_t *vol_label = lv_label_create(elements.screen);
+    lv_label_set_text(vol_label, "Гучність");
+    lv_obj_set_style_text_color(vol_label, lv_color_hex(0xAAAAAA), 0);
+    lv_obj_set_style_text_font(vol_label, Font3, 0);
+    lv_obj_align_to(vol_label, vol_slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
 
     // Подія зміни повзунка
     lv_obj_add_event_cb(vol_slider, [](lv_event_t *e) {
         lv_obj_t *slider = lv_event_get_target(e);
-        lv_obj_t *lbl = (lv_obj_t *)lv_event_get_user_data(e);
         int32_t val = lv_slider_get_value(slider);
         setVolume((uint8_t)val);
-        char buf[8];
-        snprintf(buf, sizeof(buf), "%d", (int)val);
-        lv_label_set_text(lbl, buf);
-    }, LV_EVENT_VALUE_CHANGED, vol_val_label);
+    }, LV_EVENT_VALUE_CHANGED, NULL);
 
     return elements;
 }
@@ -860,6 +846,14 @@ static void open_patient_select_async(void *user_data)
     Serial.println("[ASYNC] open_patient_select_async - ЗАВЕРШЕНО");
 }
 
+// Асинхронний callback для переходу до вибору режиму
+static void open_mode_select_async(void *user_data)
+{
+    Serial.println("[ASYNC] open_mode_select_async - СТВОРЕННЯ ЕКРАНУ ВИБОРУ РЕЖИМУ");
+    create_mode_select_screen();
+    Serial.println("[ASYNC] open_mode_select_async - ЗАВЕРШЕНО");
+}
+
 // Event handler для вибору пацієнта
 static void patient_select_event_cb(lv_event_t *e)
 {
@@ -881,16 +875,18 @@ static void patient_select_event_cb(lv_event_t *e)
     int patient_id = (int)(intptr_t)lv_event_get_user_data(e);
     currentPatientIndex = patient_id;
     
-    Serial.printf("[ПАЦІЄНТ] Обрано пацієнта %d - переходимо до головного меню\n", patient_id);
+    playAudioPrompt(AUDIO_CHOOSE_MODE);  // "Оберіть режим" (00028.mp3)
     
-    // Переходимо до головного меню
-    current_state = STATE_MAIN_MENU;
+    Serial.printf("[ПАЦІЄНТ] Обрано пацієнта %d - переходимо до вибору режиму\n", patient_id);
+    
+    // Переходимо до екрану вибору режиму
+    current_state = STATE_MODE_SELECT;
     state_start_time = lv_tick_get();
     last_interaction_time = lv_tick_get();
     
     // ВАЖЛИВО: Викликаємо markScreenTransition() та використовуємо async
     markScreenTransition();
-    lv_async_call(open_main_menu_async, NULL);
+    lv_async_call(open_mode_select_async, NULL);
     
     Serial.println("[ПОДІЯ] patient_select_event_cb КІНЕЦЬ");
 }
@@ -1004,6 +1000,7 @@ static void open_stats_async(void *user_data)
 void create_patient_select_screen()
 {
     Serial.printf("[НАЛАГОДЖЕННЯ] Створення екрану вибору пацієнта... (current_state=%d)\n", (int)current_state);
+    playAudioPrompt(AUDIO_CHOOSE_NUMBER);  // "Оберіть свій номер"
     lv_obj_clean(lv_scr_act());
     markScreenTransition();
 
@@ -1441,4 +1438,115 @@ void create_patient_stats_screen()
 
     lv_obj_add_event_cb(back_btn, stats_back_event_cb, LV_EVENT_RELEASED, NULL);
     Serial.println("[STATS_SCR] ЕКРАН СТАТИСТИКИ ГОТОВИЙ!");
+}
+
+// ============================================
+// === EKRAN VYBORU REZHYMU ===
+// ============================================
+
+static void mode_trainers_event_cb(lv_event_t *e)
+{
+    if (isScreenTransitionActive()) return;
+    Serial.println("[REZHYM] Obrano: TRENAZHERY");
+    current_state = STATE_MAIN_MENU;
+    state_start_time = lv_tick_get();
+    last_interaction_time = lv_tick_get();
+    markScreenTransition();
+    lv_async_call(open_main_menu_async, NULL);
+}
+
+static void mode_stats_event_cb(lv_event_t *e)
+{
+    if (isScreenTransitionActive()) return;
+    Serial.println("[REZHYM] Obrano: STATYSTYKA");
+    current_state = STATE_PATIENT_STATS;
+    state_start_time = lv_tick_get();
+    last_interaction_time = lv_tick_get();
+    markScreenTransition();
+    lv_async_call(open_stats_async, NULL);
+}
+
+static void mode_back_event_cb(lv_event_t *e)
+{
+    if (isScreenTransitionActive()) return;
+    Serial.println("[REZHYM] Nazad do vyboru patsienta");
+    current_state = STATE_PATIENT_SELECT;
+    state_start_time = lv_tick_get();
+    last_interaction_time = lv_tick_get();
+    markScreenTransition();
+    lv_async_call(open_patient_select_async, NULL);
+}
+
+void create_mode_select_screen()
+{
+    Serial.println("[MODE_SCR] Stvorennia ekranu vyboru rezhymu...");
+    lv_obj_clean(lv_scr_act());
+    markScreenTransition();
+
+    lv_obj_t *bg = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
+    lv_obj_set_style_bg_color(bg, lv_color_hex(0x1a1a2e), 0);
+    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_pos(bg, 0, 0);
+
+    char patient_label_text[24];
+    if (currentPatientIndex == 0) {
+        snprintf(patient_label_text, sizeof(patient_label_text), "\xd0\x93\xd0\x86\xd0\xa1\xd0\xa2\xd0\xac");
+    } else {
+        snprintf(patient_label_text, sizeof(patient_label_text), "\xd0\x9f\xd0\x90\xd0\xa6\xd0\x86\xd0\x84\xd0\x9d\xd0\xa2 %d", currentPatientIndex);
+    }
+    lv_obj_t *patient_lbl = lv_label_create(lv_scr_act());
+    lv_label_set_text(patient_lbl, patient_label_text);
+    lv_obj_set_style_text_font(patient_lbl, Font2, 0);
+    lv_obj_set_style_text_color(patient_lbl, lv_color_hex(0xCCCCCC), 0);
+    lv_obj_align(patient_lbl, LV_ALIGN_TOP_MID, 0, 20);
+
+    lv_obj_t *sub_lbl = lv_label_create(lv_scr_act());
+    lv_label_set_text(sub_lbl, "\xd0\x9e\xd0\x91\xd0\x95\xd0\xa0\xd0\x86\xd0\xa2\xd0\xac \xd0\xa0\xd0\x95\xd0\x96\xd0\x98\xd0\x9c");
+    lv_obj_set_style_text_font(sub_lbl, Font2, 0);
+    lv_obj_set_style_text_color(sub_lbl, lv_color_white(), 0);
+    lv_obj_align(sub_lbl, LV_ALIGN_TOP_MID, 0, 70);
+
+    lv_obj_t *trainers_btn = lv_btn_create(lv_scr_act());
+    lv_obj_set_size(trainers_btn, 320, 160);
+    lv_obj_align(trainers_btn, LV_ALIGN_CENTER, -175, 20);
+    lv_obj_set_style_bg_color(trainers_btn, lv_color_hex(COLOR_BTN_GREEN), 0);
+    lv_obj_set_style_bg_color(trainers_btn, lv_color_hex(COLOR_BTN_GREEN_PRESSED), LV_STATE_PRESSED);
+    lv_obj_set_style_radius(trainers_btn, 16, 0);
+    lv_obj_set_style_border_width(trainers_btn, 0, 0);
+    lv_obj_t *trainers_lbl = lv_label_create(trainers_btn);
+    lv_label_set_text(trainers_lbl, "\xd0\xa2\xd0\xa0\xd0\x95\xd0\x9d\xd0\x90\xd0\x96\xd0\x95\xd0\xa0\xd0\x98");
+    lv_obj_set_style_text_font(trainers_lbl, Font2, 0);
+    lv_obj_set_style_text_color(trainers_lbl, lv_color_hex(0x1a1a1a), 0);
+    lv_obj_center(trainers_lbl);
+    lv_obj_add_event_cb(trainers_btn, mode_trainers_event_cb, LV_EVENT_RELEASED, NULL);
+
+    lv_obj_t *stats_btn = lv_btn_create(lv_scr_act());
+    lv_obj_set_size(stats_btn, 320, 160);
+    lv_obj_align(stats_btn, LV_ALIGN_CENTER, 175, 20);
+    lv_obj_set_style_bg_color(stats_btn, lv_color_hex(COLOR_BTN_CYAN), 0);
+    lv_obj_set_style_bg_color(stats_btn, lv_color_hex(COLOR_BTN_CYAN_PRESSED), LV_STATE_PRESSED);
+    lv_obj_set_style_radius(stats_btn, 16, 0);
+    lv_obj_set_style_border_width(stats_btn, 0, 0);
+    lv_obj_t *stats_lbl = lv_label_create(stats_btn);
+    lv_label_set_text(stats_lbl, "\xd0\xa1\xd0\xa2\xd0\x90\xd0\xa2\xd0\x98\xd0\xa1\xd0\xa2\xd0\x98\xd0\x9a\xd0\x90");
+    lv_obj_set_style_text_font(stats_lbl, Font2, 0);
+    lv_obj_set_style_text_color(stats_lbl, lv_color_hex(0x1a1a1a), 0);
+    lv_obj_center(stats_lbl);
+    lv_obj_add_event_cb(stats_btn, mode_stats_event_cb, LV_EVENT_RELEASED, NULL);
+
+    lv_obj_t *back_btn = lv_btn_create(lv_scr_act());
+    lv_obj_set_size(back_btn, 200, 55);
+    lv_obj_align(back_btn, LV_ALIGN_BOTTOM_MID, 0, -20);
+    lv_obj_set_style_bg_color(back_btn, lv_color_hex(COLOR_BTN_BACK), 0);
+    lv_obj_set_style_bg_color(back_btn, lv_color_hex(COLOR_BTN_BACK_PRESSED), LV_STATE_PRESSED);
+    lv_obj_set_style_radius(back_btn, 10, 0);
+    lv_obj_t *back_lbl = lv_label_create(back_btn);
+    lv_label_set_text(back_lbl, "\xd0\x9d\xd0\x90\xd0\x97\xd0\x90\xd0\x94");
+    lv_obj_set_style_text_font(back_lbl, Font3, 0);
+    lv_obj_set_style_text_color(back_lbl, lv_color_white(), 0);
+    lv_obj_center(back_lbl);
+    lv_obj_add_event_cb(back_btn, mode_back_event_cb, LV_EVENT_RELEASED, NULL);
+
+    Serial.println("[MODE_SCR] DONE!");
 }
