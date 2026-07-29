@@ -214,8 +214,8 @@ void loading_screen_create(ScreenTransitionCallback_t transition_cb)
     lv_obj_add_event_cb(gradient_obj, transition_cb, LV_EVENT_PRESSED, NULL);
     lv_obj_add_event_cb(gradient_obj, transition_cb, LV_EVENT_RELEASED, NULL);
     lv_obj_add_event_cb(gradient_obj, transition_cb, LV_EVENT_PRESS_LOST, NULL);
-    // Also attach to the screen itself as a fallback
-    lv_obj_add_event_cb(lv_scr_act(), transition_cb, LV_EVENT_RELEASED, NULL);
+    // Не додаємо callback на lv_scr_act() — gradient_obj покриває весь екран,
+    // а повторне додавання callback на screen призводить до витоку (вони накопичуються)
 
     // Add main title with shadow
     // Create shadow first (behind the main text)

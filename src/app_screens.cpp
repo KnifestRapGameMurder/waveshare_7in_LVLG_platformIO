@@ -213,6 +213,10 @@ void app_screen_touch_cb(lv_event_t *event)
         if (code == LV_EVENT_RELEASED)
         {
             Serial.println("[ДОТИК] Перехід від завантаження до вибору пацієнта");
+            
+            // Відправляємо аудіо ОДРАЗУ, не чекаючи async виклику
+            playAudioPrompt(AUDIO_CHOOSE_NUMBER);  // "Оберіть свій номер"
+            
             current_state = STATE_PATIENT_SELECT;
             state_start_time = lv_tick_get();
             last_interaction_time = lv_tick_get();
@@ -263,6 +267,7 @@ void create_main_menu()
     lv_obj_add_event_cb(back_btn, [](lv_event_t *e) {
         if (isScreenTransitionActive()) return;
         Serial.println("Main menu: Back button pressed");
+        playAudioPrompt(AUDIO_CHOOSE_NUMBER);  // "Оберіть свій номер" — одразу!
         markScreenTransition();
         current_state = STATE_PATIENT_SELECT;
         lv_async_call([](void*){ create_patient_select_screen(); }, NULL);
@@ -935,13 +940,14 @@ static void stats_back_event_cb(lv_event_t *e)
     // Захист від фантомних кліків
     if (isScreenTransitionActive()) return;
     Serial.println("[ПОДІЯ] stats_back_event_cb - НАТИСНУТО НАЗАД");
-    current_state = STATE_PATIENT_SELECT;
+    playAudioPrompt(AUDIO_CHOOSE_MODE);  // "Оберіть режим"
+    current_state = STATE_MODE_SELECT;
     state_start_time = lv_tick_get();
     last_interaction_time = lv_tick_get();
     
-    // ASYNC transition
+    // ASYNC transition — повертаємось на екран вибору режиму
     markScreenTransition();
-    lv_async_call(open_patient_select_async, NULL);
+    lv_async_call(open_mode_select_async, NULL);
 }
 
 // Статичні змінні для відкладеного збереження очищення
@@ -1000,7 +1006,8 @@ static void open_stats_async(void *user_data)
 void create_patient_select_screen()
 {
     Serial.printf("[НАЛАГОДЖЕННЯ] Створення екрану вибору пацієнта... (current_state=%d)\n", (int)current_state);
-    playAudioPrompt(AUDIO_CHOOSE_NUMBER);  // "Оберіть свій номер"
+    // Аудіо "Оберіть свій номер" відправляється в місці виклику (до async),
+    // щоб гарантувати негайну відправку UART-команди
     lv_obj_clean(lv_scr_act());
     markScreenTransition();
 
@@ -1470,6 +1477,7 @@ static void mode_back_event_cb(lv_event_t *e)
 {
     if (isScreenTransitionActive()) return;
     Serial.println("[REZHYM] Nazad do vyboru patsienta");
+    playAudioPrompt(AUDIO_CHOOSE_NUMBER);  // "Оберіть свій номер" — одразу!
     current_state = STATE_PATIENT_SELECT;
     state_start_time = lv_tick_get();
     last_interaction_time = lv_tick_get();
